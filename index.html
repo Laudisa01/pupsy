@@ -1,0 +1,1587 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Pupsy – die Community für den guten Ton: Fürze hochladen, swipen, Duelle, Wochenturnier und Bestenlisten.">
+<meta name="theme-color" content="#ffd42e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E💨%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<title>Pupsy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+/* Layout: one phone-width column, cartoon cards with ink outlines + hard offset shadows, fixed bottom tab bar with a raised record button.
+   Deliberately single-theme: a bright cartoon world on both host themes, every color set explicitly. */
+:root {
+  --ink: #221a38;
+  --paper: #fff8e1;
+  --card: #ffffff;
+  --sun: #ffd42e;
+  --bubble: #ff619e;
+  --mint: #66db78;
+  --grape: #946bff;
+  --tang: #ff9a3d;
+  --sky: #5cbfff;
+  --lilac: #ddd2ff;
+  --blush: #ffd0e0;
+  --mist: #f3eee8;
+  --mint-soft: #d9f8de;
+  --bg-top: #ffed9e;
+  --bg-bottom: #ffccdd;
+  --display: "Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom)) fixed;
+  background-color: var(--bg-top);
+  color: var(--ink);
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg-top); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px dashed var(--grape); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.05; }
+small { font-weight: 700; opacity: .65; }
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100%;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px calc(110px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#app.no-tabs { padding-bottom: 32px; }
+
+.title-row { display: flex; align-items: center; gap: 12px; }
+.title-row > div { flex: 1; min-width: 0; }
+.title-row h1 { font-size: 34px; font-weight: 700; }
+.subtitle { font-size: 15px; opacity: .65; margin-top: 2px; }
+
+/* Cartoon primitives */
+.card { background: var(--card); border: 3px solid var(--ink); border-radius: 24px; box-shadow: 5px 5px 0 var(--ink); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--display); font-weight: 600; font-size: 18px;
+  background: var(--sun); color: var(--ink);
+  border: 3px solid var(--ink); border-radius: 999px;
+  padding: 12px 22px; box-shadow: 0 5px 0 var(--ink);
+  transition: transform .08s, box-shadow .08s;
+}
+.btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.pink { background: var(--bubble); }
+.btn.mint { background: var(--mint); }
+.btn.white { background: var(--card); }
+.btn.blush { background: var(--blush); }
+.btn.sm { font-size: 15px; padding: 7px 14px; box-shadow: 0 4px 0 var(--ink); }
+.btn.block { width: 100%; }
+.icon-btn {
+  width: 44px; height: 44px; flex: none; border-radius: 50%;
+  border: 2.5px solid var(--ink); background: var(--card);
+  display: grid; place-items: center; font-size: 18px; font-weight: 900;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  font-size: 13px; font-weight: 800; padding: 4px 10px;
+  border: 2px solid var(--ink); border-radius: 999px; background: var(--paper);
+}
+.pill.ex { background: var(--lilac); }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.avatar {
+  width: 44px; height: 44px; flex: none; border-radius: 50%;
+  display: grid; place-items: center; font-size: 24px;
+  background: var(--c, var(--sun)); border: 2.5px solid var(--ink);
+}
+.avatar.lg { width: 104px; height: 104px; font-size: 58px; border-width: 3px; }
+.eyebrow { font-family: var(--display); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; opacity: .65; }
+.label { font-family: var(--display); font-weight: 600; font-size: 17px; }
+.muted { opacity: .65; }
+.center { text-align: center; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.row > .grow { flex: 1; min-width: 0; }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Play button + waveform */
+.play {
+  width: var(--s, 52px); height: var(--s, 52px); flex: none; border-radius: 50%;
+  border: 3px solid var(--ink); background: var(--sun);
+  display: grid; place-items: center;
+}
+.play svg { width: 52%; height: 52%; fill: var(--ink); }
+.play .go { margin-left: 8%; }
+.play .stop { display: none; }
+.play.playing { background: var(--bubble); }
+.play.playing .go { display: none; }
+.play.playing .stop { display: block; }
+.play.loading { animation: pulse .8s ease-in-out infinite alternate; }
+@keyframes pulse { to { transform: scale(.9); } }
+.wave { position: relative; flex: 1; min-width: 0; height: var(--h, 70px); }
+.wave .bars { position: absolute; inset: 0; display: flex; align-items: center; gap: 2px; }
+.wave .bars i { flex: 1; min-width: 1px; border-radius: 99px; background: var(--c, var(--grape)); }
+.wave .fill { clip-path: inset(0 calc(100% - var(--p, 0%)) 0 0); }
+.wave .fill i { background: var(--bubble); }
+.player { display: flex; align-items: center; gap: 12px; }
+
+/* Challenge banner */
+.challenge { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--mint); border-radius: 18px; box-shadow: 4px 4px 0 var(--ink); }
+.challenge .em { font-size: 30px; }
+.challenge h3 { font-size: 18px; font-weight: 600; }
+.challenge p { margin: 2px 0 0; font-size: 13px; }
+
+.notice { padding: 12px 14px; border-radius: 16px; box-shadow: 3px 3px 0 var(--ink); background: var(--paper); font-size: 14px; }
+
+/* Swipe deck */
+.deck { position: relative; height: clamp(430px, 58vh, 540px); }
+.swipe-card {
+  position: absolute; inset: 0; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+  border-radius: 28px; box-shadow: 6px 6px 0 var(--ink); touch-action: none; user-select: none;
+  transition: transform .25s ease;
+}
+.swipe-card h2 { font-size: 28px; font-weight: 700; overflow-wrap: anywhere; }
+.swipe-card .player { padding: 14px; border-radius: 18px; background: var(--tint, var(--mist)); }
+.swipe-card .foot { margin-top: auto; display: flex; gap: 14px; font-size: 13px; opacity: .55; }
+.swipe-card .foot span:last-child { margin-left: auto; }
+.stamp {
+  position: absolute; top: 96px; font-family: var(--display); font-weight: 700; font-size: 30px;
+  padding: 4px 14px; border: 5px solid currentColor; border-radius: 12px; background: rgba(255,255,255,.9);
+  opacity: 0; pointer-events: none;
+}
+.stamp.like { left: 22px; color: #1f9e3a; transform: rotate(-14deg); }
+.stamp.nope { right: 22px; color: #d62f6f; transform: rotate(14deg); }
+.stamp.super { left: 50%; transform: translateX(-50%); color: #1878c9; }
+.actions { display: flex; justify-content: center; align-items: center; gap: 26px; }
+.round {
+  width: var(--s, 64px); height: var(--s, 64px); border-radius: 50%; border: 3px solid var(--ink);
+  background: var(--c); box-shadow: 0 4px 0 var(--ink); display: grid; place-items: center;
+  font-size: calc(var(--s, 64px) * .42); transition: transform .08s, box-shadow .08s;
+}
+.round:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.food-line { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.note { font-style: italic; font-size: 14px; }
+
+/* Segmented control */
+.seg { display: flex; gap: 4px; padding: 5px; border-radius: 28px; box-shadow: 3px 3px 0 var(--ink); }
+.seg button {
+  flex: 1; min-width: 0; border: 2.5px solid transparent; background: none; border-radius: 999px;
+  padding: 9px 4px; font-family: var(--display); font-weight: 600; font-size: 14px; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: var(--sun); border-color: var(--ink); }
+
+/* Leaderboard */
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: end; }
+.pod { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; text-align: center; }
+.pod .who { font-size: 13px; max-width: 100%; }
+.pod .what { font-size: 11px; opacity: .7; max-width: 100%; }
+.pod .block {
+  width: 100%; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 4px 4px 0 var(--ink);
+  display: grid; place-content: center; text-align: center;
+}
+.pod .block b { font-family: var(--display); font-size: 34px; line-height: 1; }
+.pod .block small { opacity: 1; font-size: 12px; }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; box-shadow: 3px 3px 0 var(--ink); }
+.lb-row .rank { font-family: var(--display); font-size: 20px; width: 28px; text-align: center; flex: none; }
+.lb-row .score { text-align: center; font-family: var(--display); font-size: 18px; line-height: 1; flex: none; font-variant-numeric: tabular-nums; }
+.lb-row .score small { display: block; font-size: 10px; font-family: var(--body); }
+.bar { height: 14px; border: 2px solid var(--ink); border-radius: 99px; background: var(--paper); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--tang); }
+.bar.xp > i { background: var(--mint); }
+
+/* Duels */
+.duel-card { padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: transform .3s, opacity .3s, background .3s; }
+.duel-card.won { background: var(--mint-soft); transform: scale(1.02); }
+.duel-card.lost { opacity: .45; transform: scale(.97); }
+.vs {
+  align-self: center; width: 64px; height: 64px; border-radius: 50%; background: var(--bubble); color: #fff;
+  border: 3px solid var(--ink); display: grid; place-items: center; font-family: var(--display); font-weight: 700;
+  font-size: 24px; transform: rotate(-8deg); margin: -18px 0; z-index: 2; position: relative;
+}
+.match { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.match .divider { display: flex; align-items: center; gap: 8px; font-family: var(--display); color: var(--bubble); font-size: 13px; }
+.match .divider::before, .match .divider::after { content: ""; flex: 1; height: 2px; background: var(--ink); opacity: .15; }
+.result-line { display: flex; gap: 6px; font-size: 13px; align-items: baseline; }
+.result-line .w { font-weight: 900; }
+.result-line .l { opacity: .5; font-weight: 600; }
+
+/* Profile */
+.profile-head { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--paper); border-radius: 28px; }
+.profile-head h2 { font-size: 30px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { padding: 10px 4px; text-align: center; border-radius: 14px; box-shadow: 2px 2px 0 var(--ink); background: var(--paper); }
+.stat .em { font-size: 22px; }
+.stat b { display: block; font-family: var(--display); font-size: 18px; font-variant-numeric: tabular-nums; }
+.stat small { font-size: 11px; }
+.badges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.badge { padding: 12px 4px; text-align: center; border-radius: 16px; background: var(--mist); box-shadow: 1px 1px 0 var(--ink); }
+.badge .em { font-size: 32px; filter: grayscale(1); opacity: .35; }
+.badge.on { background: var(--sun); box-shadow: 3px 3px 0 var(--ink); }
+.badge.on .em { filter: none; opacity: 1; }
+.badge small { display: block; opacity: 1; font-size: 12px; }
+
+/* Forms */
+.field {
+  width: 100%; font: inherit; font-weight: 700; font-size: 16px; color: var(--ink);
+  padding: 13px 14px; border: 2.5px solid var(--ink); border-radius: 16px; background: var(--card);
+}
+.field::placeholder { color: var(--ink); opacity: .4; }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 8px; }
+.chip {
+  border: 2px solid var(--ink); border-radius: 999px; background: var(--card); padding: 9px 8px;
+  font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chip[aria-pressed="true"] { background: var(--c, var(--tang)); }
+.chip-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.check { display: flex; align-items: center; gap: 14px; padding: 14px; width: 100%; text-align: left; border-radius: 18px; box-shadow: 3px 3px 0 var(--ink); }
+.check .box { width: 34px; height: 34px; flex: none; border: 2.5px solid var(--ink); border-radius: 10px; display: grid; place-items: center; background: var(--card); font-size: 18px; }
+.check[aria-checked="true"] .box { background: var(--mint); }
+.emoji-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.emoji-grid button { aspect-ratio: 1; max-width: 100%; border-radius: 50%; border: 1.5px solid var(--ink); background: var(--card); font-size: 22px; padding: 0; }
+.emoji-grid button[aria-pressed="true"] { background: var(--bubble); border-width: 3px; }
+
+.stat-boxes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.big-record {
+  width: 180px; height: 180px; border-radius: 50%; border: 4px solid var(--ink); background: var(--sun);
+  box-shadow: 0 7px 0 var(--ink); font-size: 76px; display: grid; place-items: center; margin: 6px auto 0;
+  transition: transform .08s, box-shadow .08s;
+}
+.big-record:active { transform: translateY(5px); box-shadow: 0 2px 0 var(--ink); }
+
+/* Logo */
+.logo { width: 150px; height: 150px; border-radius: 50%; background: var(--sun); border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); display: grid; place-items: center; font-size: 84px; margin: 0 auto; animation: wobble 2.4s ease-in-out infinite; }
+@keyframes wobble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+.wordmark { font-family: var(--display); font-weight: 700; font-size: 56px; text-align: center; }
+
+/* Tabs */
+#tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  background: var(--card); border-top: 3px solid var(--ink);
+  padding: 0 max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+}
+#tabs .inner { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; height: 64px; }
+#tabs button.tab { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 800; color: var(--ink); opacity: .45; padding: 6px 0; }
+#tabs button.tab .em { font-size: 21px; line-height: 26px; filter: grayscale(1); }
+#tabs button.tab[aria-current="page"] { opacity: 1; color: #d62f6f; }
+#tabs button.tab[aria-current="page"] .em { filter: none; }
+#tabs .rec { justify-self: center; width: 70px; height: 70px; border-radius: 50%; background: var(--bubble); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); font-size: 34px; transform: translateY(-16px); display: grid; place-items: center; }
+#tabs[hidden] { display: none !important; }
+
+/* Overlays */
+#overlay { position: fixed; inset: 0; z-index: 40; background: rgba(34, 26, 56, .45); display: grid; place-items: center; padding: 24px max(24px, env(safe-area-inset-right, 0px)) 24px max(24px, env(safe-area-inset-left, 0px)); }
+#overlay .sheet { width: 100%; max-width: 400px; max-height: 88vh; overflow-y: auto; padding: 22px; background: var(--paper); border-radius: 28px; box-shadow: 6px 6px 0 var(--ink); border: 3px solid var(--ink); display: flex; flex-direction: column; gap: 12px; }
+#overlay .sheet h2 { font-size: 26px; text-align: center; }
+.sheet-list button { width: 100%; text-align: left; padding: 12px 14px; border-radius: 14px; border: 2px solid var(--ink); background: var(--card); font-weight: 800; }
+#toast {
+  position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 50;
+  background: var(--sun); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 3px 3px 0 var(--ink);
+  padding: 10px 16px; font-weight: 800; max-width: min(420px, calc(100% - 32px)); text-align: center;
+}
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 45; overflow: hidden; }
+.confetti span { position: absolute; top: -50px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(var(--r)); } }
+.spinner { width: 34px; height: 34px; border: 4px solid var(--ink); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; margin: 30px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 8px; align-items: center; background: var(--paper); }
+.empty .em { font-size: 60px; }
+.empty h3 { font-size: 22px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .logo, .play.loading, .spinner { animation: none; }
+  .confetti { display: none; }
+  .swipe-card, .duel-card { transition: none; }
+}
+</style>
+
+<div id="app" aria-live="polite"></div>
+<nav id="tabs" hidden aria-label="Hauptnavigation">
+  <div class="inner">
+    <button class="tab" data-tab="discover"><span class="em">🔥</span>Entdecken</button>
+    <button class="tab" data-tab="duels"><span class="em">⚡</span>Duelle</button>
+    <button class="rec" data-tab="record" aria-label="Pups aufnehmen">💨</button>
+    <button class="tab" data-tab="ranking"><span class="em">🏆</span>Ranking</button>
+    <button class="tab" data-tab="profile"><span class="em">👤</span>Profil</button>
+  </div>
+</nav>
+<div id="overlay" hidden></div>
+<div id="toast" hidden role="status"></div>
+<input type="file" id="file-input" accept="audio/*,video/*" hidden>
+
+<script>
+"use strict";
+/* ============================== Konstanten ============================== */
+const DAY = 864e5;
+const SR = 8000;              // Speicher-Abtastrate: reicht für tiefe Töne locker
+const WIN = 400;              // 50-ms-Analysefenster
+const MAX_SEC = 15;
+
+const FOODS = [["Bohnen","🫘"],["Zwiebeln","🧅"],["Kohl","🥬"],["Brokkoli","🥦"],["Döner","🥙"],["Pizza","🍕"],["Burger","🍔"],["Eier","🥚"],["Chili","🌶️"],["Knoblauch","🧄"],["Milch","🥛"],["Bier","🍺"],["Burrito","🌯"],["Curry","🍛"],["Linsen","🥣"],["Pommes","🍟"]];
+const foodEmoji = n => (FOODS.find(f => f[0] === n) || [0, "🍽️"])[1];
+const CATS = {
+  knaller:    { label: "Knaller",    emoji: "💥", color: "var(--tang)",   tint: "#ffe6cf", verdict: "Kurz, laut, effektiv. Respekt!" },
+  trompete:   { label: "Trompete",   emoji: "🎺", color: "var(--sun)",    tint: "#fff3c2", verdict: "Klar im Ton, stolz in der Haltung." },
+  marathon:   { label: "Marathon",   emoji: "⏱️", color: "var(--sky)",    tint: "#d8efff", verdict: "Das nennt man Ausdauer. Olympia-reif!" },
+  ninja:      { label: "Ninja",      emoji: "🥷", color: "var(--grape)",  tint: "#e8e0ff", verdict: "Leise, aber tödlich. Niemand wird es je erfahren." },
+  knatterer:  { label: "Knatterer",  emoji: "🏍️", color: "var(--mint)",   tint: "#dcf7e1", verdict: "Wie ein Moped am Sonntagmorgen." },
+  quietscher: { label: "Quietscher", emoji: "🐭", color: "var(--bubble)", tint: "#ffe0ec", verdict: "Hoch, piepsig, irgendwie süß." },
+};
+const cat = c => CATS[c] || CATS.trompete;
+const autoCat = (d, p) => d >= 5 ? "marathon" : p < 25 ? "ninja" : (d < 1.2 && p >= 70) ? "knaller" : p >= 60 ? "trompete" : "knatterer";
+const BADGES = [
+  ["erster_pups", "Erster Pups", "🐣", "Deinen ersten Pups hochgeladen."],
+  ["donnergott", "Donnergott", "⛈️", "Wumms-Score von 90 oder mehr."],
+  ["marathon", "Marathon", "⏱️", "Ein Pups, länger als 5 Sekunden."],
+  ["ninja", "Ninja", "🥷", "Wumms-Score unter 20. Psst!"],
+  ["bohnenkoenig", "Bohnenkönig", "🫘", "10 Fürze nach Bohnen."],
+  ["streak7", "Dauerbrenner", "🔥", "7 Tage am Stück hochgeladen."],
+  ["duellmeister", "Duellmeister", "⚔️", "10 Duelle gewonnen."],
+  ["turniersieger", "Turniersieger", "🏆", "Ein Wochenturnier gewonnen."],
+  ["pups_des_tages", "Pups des Tages", "👑", "Eine Daily Challenge gewonnen."],
+];
+const CHALLENGES = [
+  { title: "Der Lange", desc: "Wer hält am längsten durch? Der längste Pups gewinnt.", emoji: "⏱️", rule: "longest" },
+  { title: "Donnerwetter", desc: "Lautstärke zählt! Der höchste Wumms-Score gewinnt.", emoji: "⛈️", rule: "loudest" },
+  { title: "Ninja-Tag", desc: "Psst … der leiseste Pups gewinnt.", emoji: "🥷", rule: "quietest" },
+  { title: "Publikumsliebling", desc: "Die meisten Punkte heute gewinnen.", emoji: "❤️", rule: "most_liked" },
+  { title: "Bohnen-Day", desc: "Nur mit Bohnen im Bauch! Die meisten Punkte gewinnen.", emoji: "🫘", rule: "food", food: "Bohnen" },
+  { title: "Zwiebel-Power", desc: "Zwiebeln gegessen? Zeig, was sie können.", emoji: "🧅", rule: "food", food: "Zwiebeln" },
+  { title: "Döner-Donnerstag", desc: "Nach dem Döner wird abgerechnet.", emoji: "🥙", rule: "food", food: "Döner" },
+];
+const AVATARS = ["💨","🫘","🦨","🐷","🤠","👻","🦄","🐸","🤖","👽","🧙","🦖","🐙","🍑","🌪️","🎺"];
+const RANKS = [[1, "Lüftchen 🍃"], [2, "Brise 🌬️"], [3, "Windstoß 💨"], [5, "Sturm 🌪️"], [7, "Orkan 🌀"], [10, "Vulkan 🌋"]];
+const levelOf = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 50)) + 1;
+const xpFor = l => (l - 1) * (l - 1) * 50;
+const rankOf = l => RANKS.filter(r => l >= r[0]).pop()[1];
+const REPORT_REASONS = ["Das ist kein Furz", "Beleidigend oder anstößig", "Spam", "Persönliche Daten"];
+const NAME_A = ["Donner","Bohnen","Knatter","Pups","Trompeten","Zwiebel","Turbo","Ninja","Sturm","Brumm"];
+const NAME_B = ["Baron","Kaiser","Lord","Meister","Prinz","Held","Hase","Bär","Fee","Rakete"];
+const TITLE_IDEAS = ["Der Weckruf","Bohnen-Symphonie","Stiller Killer","Montagmorgen","Nach dem Chili","Aufzug-Überraschung","Opas Rache","Doppelschlag","Turbo","Geheimwaffe","Bauchgrummeln","Die Fanfare","Erdbeben","Nachtschicht","Büro-Ninja"];
+
+/* ============================== Helfer ============================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const rid = (n = 10) => { const c = "abcdefghijklmnopqrstuvwxyz0123456789"; let s = ""; const b = crypto.getRandomValues(new Uint8Array(n)); for (const x of b) s += c[x % c.length]; return s; };
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fmtSec = d => d.toFixed(1).replace(".", ",") + " s";
+const fmtNum = (n, d = 1) => n.toFixed(d).replace(".", ",");
+const dayKey = ms => { const d = new Date(ms); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const startOfDay = ms => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const weekStart = ms => { const d = new Date(startOfDay(ms)); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); };
+const monthStart = ms => { const d = new Date(ms); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); };
+const addDays = (ms, n) => { const d = new Date(ms); d.setDate(d.getDate() + n); return d.getTime(); };
+const rtf = new Intl.RelativeTimeFormat("de", { numeric: "auto" });
+function ago(ms) {
+  const s = (ms - Date.now()) / 1000, a = Math.abs(s);
+  if (a < 60) return "gerade eben";
+  if (a < 3600) return rtf.format(Math.round(s / 60), "minute");
+  if (a < 86400) return rtf.format(Math.round(s / 3600), "hour");
+  if (a < 86400 * 30) return rtf.format(Math.round(s / 86400), "day");
+  return rtf.format(Math.round(s / (86400 * 30)), "month");
+}
+const fmtWhen = ms => new Date(ms).toLocaleString("de-DE", { weekday: "short", hour: "2-digit", minute: "2-digit" });
+const fmtDate = ms => new Date(ms).toLocaleDateString("de-DE", { day: "numeric", month: "long" });
+function challengeFor(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  const doy = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(y, 0, 0)) / DAY);
+  return { ...CHALLENGES[doy % CHALLENGES.length], day: key };
+}
+const today = () => dayKey(Date.now());
+
+/* Wellenform als 60 Zeichen (0–z = 36 Stufen) */
+const encWave = w => w.map(v => Math.round(clamp(v) * 35).toString(36)).join("");
+const decWave = s => [...String(s || "")].map(c => parseInt(c, 36) / 35);
+
+/* ============================== Audio: Synthese, Analyse, μ-law ============================== */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function synth(seed, dur, loud) {
+  const r = mulberry32(seed), R = (a, b) => a + (b - a) * r();
+  const n = Math.floor(dur * SR);
+  const f0 = R(55, 130), fl = R(8, 28), wb = R(.3, 1.5), na = R(.1, .45), pw = R(.15, .4), bursts = 1 + Math.floor(r() * 3);
+  const out = new Float32Array(n);
+  let ph = 0, lp = 0, lp2 = 0, dr = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR, x = t / dur;
+    dr = clamp(dr + R(-1, 1) * .004, -.3, .3);
+    const f = f0 * (1 + .25 * Math.sin(2 * Math.PI * wb * t) + dr) * (1 - .3 * x);
+    ph += f / SR; if (ph >= 1) ph -= 1;
+    const pulse = ph < pw ? 1 : -pw / (1 - pw);
+    const noise = R(-1, 1) * na;
+    const flut = .65 + .35 * Math.sin(2 * Math.PI * fl * t);
+    let env = Math.min(1, t / .02) * Math.min(1, (1 - x) / .15);
+    if (bursts > 1) { const seg = x * bursts; if (seg - Math.floor(seg) > .85) env *= .05; }
+    const raw = (pulse * .8 + noise) * flut * env;
+    lp += .4 * (raw - lp); lp2 += .55 * (lp - lp2);
+    out[i] = lp2;
+  }
+  let pk = 1e-4; for (const v of out) pk = Math.max(pk, Math.abs(v));
+  const k = loud * .95 / pk; for (let i = 0; i < n; i++) out[i] *= k;
+  return out;
+}
+
+const normDb = v => clamp((20 * Math.log10(Math.max(v, 1e-6)) + 50) / 50);
+
+function resample(v, n) {
+  if (!v.length) return Array(n).fill(.05);
+  const mx = Math.max(...v, .01), loud = .4 + .6 * mx;
+  return Array.from({ length: n }, (_, i) => {
+    const a = Math.min(Math.floor(i * v.length / n), v.length - 1);
+    const b = Math.min(Math.max(a + 1, Math.floor((i + 1) * v.length / n)), v.length);
+    let m = 0; for (let j = a; j < b; j++) m = Math.max(m, v[j]);
+    return Math.max(.05, m / mx * loud);
+  });
+}
+
+/* Analyse wie in der iOS-Version: 50-ms-Fenster, Stille abschneiden, Wumms = lautestes Fenster */
+function analyze(samples) {
+  const levels = [];
+  for (let s = 0; s < samples.length; s += WIN) {
+    let sum = 0; const e = Math.min(samples.length, s + WIN);
+    for (let i = s; i < e; i++) sum += samples[i] * samples[i];
+    levels.push(normDb(Math.sqrt(sum / Math.max(1, e - s))));
+  }
+  const th = .2;
+  let start = levels.findIndex(v => v > th), end = levels.length - 1 - [...levels].reverse().findIndex(v => v > th);
+  if (start < 0 || end < start) { start = 0; end = levels.length - 1; }
+  start = Math.max(0, start - 3); end = Math.min(levels.length - 1, end + 3);
+  end = Math.min(end, start + MAX_SEC * 20 - 1);
+  const slice = levels.slice(start, end + 1);
+  const peak = Math.round(Math.max(...slice, 0) * 100);
+  const trimmed = samples.slice(start * WIN, Math.min(samples.length, (end + 1) * WIN));
+  const dur = trimmed.length / SR;
+  return { samples: trimmed, dur, peak, wave: resample(slice, 60), cat: autoCat(dur, peak) };
+}
+
+function waveFromSamples(samples, loud) {
+  const n = 60, size = Math.max(1, Math.floor(samples.length / n)), rms = [];
+  for (let b = 0; b < n; b++) {
+    let s = 0, c = 0;
+    for (let i = b * size; i < Math.min(samples.length, (b + 1) * size); i++) { s += samples[i] * samples[i]; c++; }
+    rms.push(Math.sqrt(s / Math.max(c, 1)));
+  }
+  const mx = Math.max(...rms, 1e-4);
+  return rms.map(v => Math.max(.05, v / mx * (.35 + .65 * loud)));
+}
+
+const MU = 255;
+function encodeMulaw(samples) {
+  const out = new Uint8Array(samples.length), L = Math.log1p(MU);
+  for (let i = 0; i < samples.length; i++) {
+    const x = clamp(samples[i], -1, 1);
+    out[i] = Math.round((Math.sign(x) * Math.log1p(MU * Math.abs(x)) / L + 1) * 127.5);
+  }
+  return out;
+}
+function decodeMulaw(bytes) {
+  const out = new Float32Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) { const y = bytes[i] / 127.5 - 1; out[i] = Math.sign(y) * (Math.pow(1 + MU, Math.abs(y)) - 1) / MU; }
+  return out;
+}
+function toB64(bytes) { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+function fromB64(b64) { const s = atob(b64); const out = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+
+/* ============================== Beispiel-Fürze (nur lokal, als „Beispiel“ markiert) ============================== */
+const EX_USERS = [["Bohnenbaron", "🫘"], ["Pupsprinzessin", "👸"], ["DonnerDieter", "⛈️"], ["LeiseLisa", "🥷"], ["KnatterKarl", "🏍️"], ["TrompetenTom", "🎺"]];
+const EX_TITLES = ["Der Weckruf", "Bohnen-Symphonie", "Stiller Killer", "Montagmorgen", "Nach dem Chili", "Aufzug-Überraschung", "Opas Rache", "Turbo", "Die Fanfare", "Mini-Pieps", "Nachtschicht", "Erdbeben"];
+const EX_NOTES = ["3 Teller Chili con Carne", "Mamas Bohneneintopf", null, "Zwei Liter Milch, ich bereue nichts", null, "Kohlrouladen bei Oma"];
+function makeExamples() {
+  const r = mulberry32(42), R = (a, b) => a + (b - a) * r();
+  const now = Date.now(), sinceMidnight = Math.max(120000, now - startOfDay(now));
+  return EX_TITLES.map((title, i) => {
+    const dur = R(.6, 5.5), peak = Math.round(R(12, 96)), loud = .15 + .85 * peak / 100;
+    const seed = (i + 1) * 7919;
+    const foods = shuffleSeeded(FOODS.map(f => f[0]), r).slice(0, Math.floor(R(0, 3.99)));
+    const age = i < 3 ? R(60000, sinceMidnight) : R(3 * 3600e3, 40 * DAY);
+    return {
+      id: "ex" + i, owner: "ex-" + (i % EX_USERS.length), ex: true, seed, loud,
+      title, cat: autoCat(dur, peak), dur, peak, wave: encWave(waveFromSamples(synth(seed, dur, loud), loud)),
+      foods, note: EX_NOTES[i % EX_NOTES.length], t: now - age,
+      base: { likes: Math.round(R(0, 40)), nopes: Math.round(R(0, 14)), supers: Math.round(R(0, 8)), elo: R(940, 1120) },
+    };
+  });
+}
+function shuffleSeeded(a, r) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ============================== Zustand ============================== */
+const S = {
+  mode: "loading",          // loading | live | demo
+  db: null, uid: null, canWrite: false, isOwner: false,
+  users: {}, loaded: false, stale: false, meExists: false,
+  tab: "discover", board: "week", duelMode: "quick",
+  deck: [], deckReady: false, dragging: false, swiping: false,
+  duel: null, duelWinner: null,
+  local: { swipes: {}, duels: {}, tvotes: {} },
+  rec: { stage: "pick" },
+  editingProfile: false,
+  autoplay: true,
+  demoAudio: new Map(),
+  supa: null, pending: 0,
+  login: { email: "", sent: false, busy: false },
+};
+try { S.autoplay = localStorage.getItem("pupsy-autoplay") !== "0"; } catch (e) {}
+const EXAMPLES = makeExamples();
+let D = null;   // abgeleitete Daten
+
+const me = () => S.users[S.uid] || null;
+function nameOf(uid) {
+  if (uid && uid.startsWith("ex-")) return EX_USERS[+uid.slice(3)][0];
+  return (S.users[uid] && S.users[uid].name) || "Jemand";
+}
+function emojiOf(uid) {
+  if (uid && uid.startsWith("ex-")) return EX_USERS[+uid.slice(3)][1];
+  return (S.users[uid] && S.users[uid].emoji) || "💨";
+}
+const mySwipes = () => ({ ...((me() || {}).swipes || {}), ...S.local.swipes });
+const myDuels = () => ({ ...((me() || {}).duels || {}), ...S.local.duels });
+const myTvotes = () => ({ ...((me() || {}).tvotes || {}), ...S.local.tvotes });
+const pairKey = (a, b) => a < b ? a + "_" + b : b + "_" + a;
+
+/* ============================== Ableitung: Zähler, Elo, Challenges, Turniere ============================== */
+function derive() {
+  const byId = {}, real = [];
+  for (const [uid, u] of Object.entries(S.users)) {
+    if (!u || !u.farts) continue;
+    for (const [fid, m] of Object.entries(u.farts)) {
+      if (!m || typeof m !== "object") continue;
+      const f = { ...m, id: fid, owner: uid, foods: Array.isArray(m.foods) ? m.foods : [], likes: 0, nopes: 0, supers: 0, elo: 1000, wins: 0, reports: 0 };
+      byId[fid] = f; real.push(f);
+    }
+  }
+  const useEx = S.mode === "demo" || real.length < 5;
+  if (useEx) for (const e of EXAMPLES) byId[e.id] = { ...e, likes: e.base.likes, nopes: e.base.nopes, supers: e.base.supers, elo: e.base.elo, wins: 0, reports: 0 };
+
+  const count = (voter, fid, v) => {
+    const f = byId[fid]; if (!f || f.owner === voter || !v) return;
+    const k = typeof v === "string" ? v : v.k;
+    if (k === "l") f.likes++; else if (k === "n") f.nopes++; else if (k === "s") f.supers++;
+  };
+  const votes = [], tvotes = [];
+  for (const [uid, u] of Object.entries(S.users)) {
+    if (!u) continue;
+    for (const [fid, v] of Object.entries(u.swipes || {})) count(uid, fid, v);
+    for (const fid of Object.keys(u.reports || {})) if (byId[fid] && byId[fid].owner !== uid) byId[fid].reports++;
+    for (const v of Object.values(u.duels || {})) if (v && v.a && v.b) votes.push({ ...v, voter: uid });
+    for (const [key, v] of Object.entries(u.tvotes || {})) if (v) tvotes.push({ key, a: !!v.a, t: v.t || 0, voter: uid });
+  }
+  for (const [fid, v] of Object.entries(S.local.swipes)) count(S.uid, fid, v);
+  for (const v of Object.values(S.local.duels)) votes.push({ ...v, voter: S.uid });
+  for (const [key, v] of Object.entries(S.local.tvotes)) tvotes.push({ key, a: !!v.a, t: v.t, voter: S.uid });
+  votes.sort((x, y) => (x.t || 0) - (y.t || 0));
+
+  const baseElo = id => (byId[id] && byId[id].ex) ? byId[id].base.elo : 1000;
+  function replay(until) {
+    const elo = {};
+    const get = id => elo[id] ?? baseElo(id);
+    for (const v of votes) {
+      if (until != null && v.t >= until) break;
+      const A = byId[v.a], B = byId[v.b];
+      if (!A || !B || A.owner === v.voter || B.owner === v.voter || (v.w !== v.a && v.w !== v.b)) continue;
+      const ea = get(v.a), eb = get(v.b), exA = 1 / (1 + Math.pow(10, (eb - ea) / 400)), sa = v.w === v.a ? 1 : 0;
+      elo[v.a] = ea + 24 * (sa - exA); elo[v.b] = eb + 24 * ((1 - sa) - (1 - exA));
+      if (until == null) byId[v.w].wins++;
+    }
+    return get;
+  }
+  const eloNow = replay(null);
+  for (const f of Object.values(byId)) f.elo = eloNow(f.id);
+
+  const blocked = ((me() || {}).blocked) || {};
+  const all = Object.values(byId);
+  for (const f of all) { f.hidden = f.reports >= 3; f.score = f.likes + 3 * f.supers - f.nopes; }
+  const visible = all.filter(f => !f.hidden && !blocked[f.owner]);
+
+  // Daily-Challenge-Sieger (abgeschlossene Tage)
+  const todayKey = today(), dailyWins = {};
+  const byDay = {};
+  for (const f of all) if (f.ch && f.ch < todayKey && !f.hidden) (byDay[f.ch] = byDay[f.ch] || []).push(f);
+  for (const [day, list] of Object.entries(byDay)) {
+    const c = challengeFor(day);
+    const ok = list.filter(f => c.rule !== "food" || f.foods.includes(c.food));
+    if (!ok.length) continue;
+    const by = { longest: f => f.dur, loudest: f => f.peak, quietest: f => -f.peak }[c.rule] || (f => f.score);
+    ok.sort((x, y) => by(y) - by(x) || y.score - x.score || x.t - y.t);
+    dailyWins[day] = ok[0].id;
+  }
+
+  // Turniere
+  function tournament(ws) {
+    const get = replay(ws);
+    const entrants = all.filter(f => !f.hidden && f.t < ws)
+      .sort((x, y) => get(y.id) - get(x.id) || y.likes - x.likes || (x.id < y.id ? -1 : 1));
+    let N = 1; while (N * 2 <= Math.min(16, entrants.length)) N *= 2;
+    if (N < 2) return null;
+    const R = Math.log2(N), wk = dayKey(ws);
+    const ends = Array.from({ length: R }, (_, r) => ws + 7 * DAY * (r + 1) / R);
+    const now = Date.now();
+    const rounds = [];
+    let current = R, ids = entrants.slice(0, N).map(f => f.id);
+    let pairs = Array.from({ length: N / 2 }, (_, i) => [ids[i], ids[N - 1 - i]]);
+    let champion = null;
+    for (let r = 0; r < R; r++) {
+      const start = r === 0 ? ws : ends[r - 1];
+      const matches = pairs.map(([a, b], i) => {
+        const key = wk + "|" + r + "|" + (i + 1);
+        let va = 0, vb = 0;
+        for (const v of tvotes) if (v.key === key && v.t >= start && v.t < ends[r]) { if (v.a) va++; else vb++; }
+        return { key, round: r, slot: i + 1, a: byId[a] ? a : null, b: byId[b] ? b : null, va, vb, winner: null };
+      });
+      rounds.push(matches);
+      if (now < ends[r]) { current = r; break; }
+      for (const m of matches) {
+        m.winner = !m.a ? m.b : !m.b ? m.a : m.va > m.vb ? m.a : m.vb > m.va ? m.b : (get(m.a) >= get(m.b) ? m.a : m.b);
+      }
+      const w = matches.map(m => m.winner);
+      if (r === R - 1) champion = w[0];
+      pairs = Array.from({ length: w.length / 2 }, (_, i) => [w[2 * i], w[2 * i + 1]]);
+    }
+    return { ws, R, ends, rounds, current, champion, finished: current === R };
+  }
+  const thisWeek = weekStart(Date.now());
+  const champions = {};
+  if (all.length) {
+    const first = weekStart(Math.min(...all.map(f => f.t)));
+    for (let w = first, n = 0; w < thisWeek && n < 60; w = addDays(w, 7), n++) {
+      const t = tournament(w); if (t && t.champion) champions[dayKey(w)] = t.champion;
+    }
+  }
+  const lastWeek = tournament(addDays(thisWeek, -7));
+  D = { byId, all, visible, real, useEx, dailyWins, champions, tour: tournament(thisWeek), lastTour: lastWeek };
+}
+
+function statsFor(uid) {
+  const mine = D.all.filter(f => f.owner === uid).sort((a, b) => b.t - a.t);
+  const likes = mine.reduce((s, f) => s + f.likes, 0), supers = mine.reduce((s, f) => s + f.supers, 0), wins = mine.reduce((s, f) => s + f.wins, 0);
+  const ids = new Set(mine.map(f => f.id));
+  const chEntries = mine.filter(f => { if (!f.ch || f.ch !== dayKey(f.t)) return false; const c = challengeFor(f.ch); return c.rule !== "food" || f.foods.includes(c.food); }).length;
+  const daily = Object.values(D.dailyWins).filter(id => ids.has(id)).length;
+  const champs = Object.values(D.champions).filter(id => ids.has(id)).length;
+  const days = new Set(mine.map(f => dayKey(f.t)));
+  let streak = 0, d = Date.now();
+  if (!days.has(dayKey(d))) d = addDays(d, -1);
+  while (days.has(dayKey(d))) { streak++; d = addDays(d, -1); }
+  let best = 0, run = 0, prev = null;
+  for (const k of [...days].sort()) { const t = new Date(k + "T12:00").getTime(); run = prev != null && Math.round((t - prev) / DAY) === 1 ? run + 1 : 1; best = Math.max(best, run); prev = t; }
+  const xp = mine.length * 10 + likes * 2 + supers * 5 + wins * 5 + chEntries * 20 + daily * 50 + champs * 100;
+  const b = new Set();
+  if (mine.length) b.add("erster_pups");
+  if (mine.some(f => f.peak >= 90)) b.add("donnergott");
+  if (mine.some(f => f.dur > 5)) b.add("marathon");
+  if (mine.some(f => f.peak < 20)) b.add("ninja");
+  if (mine.filter(f => f.foods.includes("Bohnen")).length >= 10) b.add("bohnenkoenig");
+  if (best >= 7) b.add("streak7");
+  if (wins >= 10) b.add("duellmeister");
+  if (champs) b.add("turniersieger");
+  if (daily) b.add("pups_des_tages");
+  return { mine, likes, supers, wins, xp, streak, badges: b, maxPeak: Math.max(0, ...mine.map(f => f.peak)) };
+}
+
+/* ============================== Speicher (Artifact-DB oder lokale Vorschau) ============================== */
+let writeChain = Promise.resolve();
+function enqueue(fn) {
+  const p = writeChain.then(fn);
+  writeChain = p.catch(() => {});
+  return p.catch(handleWriteError);
+}
+function handleWriteError(e) {
+  const code = e && e.code;
+  if (S.mode === "supa" && (code === "42501" || code === "PGRST301" || (e && e.status === 401))) { toast("Bitte melde dich (erneut) an."); S.tab = "login"; render(); return false; }
+  if (S.mode === "supa" && code === "23514") { toast("Das ist zu groß zum Speichern. Lösch ein paar alte Fürze."); return false; }
+  if (code === "invalid_argument") { S.canWrite = false; toast("Du kannst hier nur zuhören, nicht mitmachen."); render(); }
+  else if (code === "quota_exceeded") toast("Der Speicher der Community ist voll. Alte Fürze löschen hilft.");
+  else if (code === "resource_exhausted") toast("Etwas zu schnell! Kurz durchatmen und nochmal.");
+  else toast("Konnte nicht speichern. Prüf deine Verbindung.");
+  return false;
+}
+function mergeDeep(a, b) {
+  const out = { ...(a || {}) };
+  for (const [k, v] of Object.entries(b)) out[k] = (v && typeof v === "object" && !Array.isArray(v) && out[k] && typeof out[k] === "object" && !Array.isArray(out[k])) ? mergeDeep(out[k], v) : v;
+  return out;
+}
+/* Supabase (GitHub-Pages-Version): eine Zeile pro Person, Audio in eigener Tabelle */
+function supaSaveMe() {
+  S.pending++;
+  return enqueue(async () => {
+    try {
+      const { error } = await S.supa.from("pupsy_users").upsert({ id: S.uid, doc: S.users[S.uid], updated_at: new Date().toISOString() });
+      if (error) throw error;
+      S.meExists = true;
+      return true;
+    } finally { S.pending--; }
+  });
+}
+function updateMe(patch) {
+  S.users = { ...S.users, [S.uid]: mergeDeep(S.users[S.uid], patch) };
+  derive();
+  if (S.mode === "supa") return supaSaveMe();
+  if (S.mode !== "live") return Promise.resolve(true);
+  const ref = S.db.doc("users/" + S.uid);
+  return enqueue(async () => {
+    if (S.meExists) await ref.update(patch);
+    else { await ref.set(S.users[S.uid]); S.meExists = true; }
+    return true;
+  });
+}
+function setMe(doc) {
+  S.users = { ...S.users, [S.uid]: doc };
+  derive();
+  if (S.mode === "supa") return supaSaveMe();
+  if (S.mode !== "live") return Promise.resolve(true);
+  return enqueue(async () => { await S.db.doc("users/" + S.uid).set(doc); S.meExists = true; return true; });
+}
+async function putAudio(fid, bytes) {
+  const body = { d: toB64(bytes), n: bytes.length };
+  if (S.mode === "supa") return enqueue(async () => {
+    const { error } = await S.supa.from("pupsy_audio").upsert({ id: fid, owner: S.uid, d: body.d });
+    if (error) throw error;
+    return true;
+  });
+  if (S.mode !== "live") { S.demoAudio.set(fid, body); return true; }
+  return enqueue(async () => { await S.db.doc("users/" + S.uid + "/audio/" + fid).set(body); return true; });
+}
+async function loadAudio(f) {
+  if (f.ex) return synth(f.seed, f.dur, f.loud);
+  let body = S.demoAudio.get(f.id);
+  if (!body && S.mode === "supa") {
+    const { data, error } = await S.supa.from("pupsy_audio").select("d").eq("id", f.id).maybeSingle();
+    if (error) throw error;
+    body = data;
+  }
+  if (!body && S.mode === "live") {
+    const snap = await S.db.doc("users/" + f.owner + "/audio/" + f.id).get();
+    body = snap.exists ? snap.data() : null;
+  }
+  if (!body || !body.d) throw new Error("missing");
+  return decodeMulaw(fromB64(body.d));
+}
+function deleteAudio(owner, fid) {
+  if (S.mode === "supa") return enqueue(async () => { const { error } = await S.supa.from("pupsy_audio").delete().eq("id", fid); if (error) throw error; });
+  if (S.mode !== "live") { S.demoAudio.delete(fid); return Promise.resolve(); }
+  return enqueue(() => S.db.doc("users/" + owner + "/audio/" + fid).delete());
+}
+async function adminRemove(f) {
+  const u = S.users[f.owner]; if (!u) return;
+  const farts = { ...(u.farts || {}) }; delete farts[f.id];
+  const doc = { ...u, farts };
+  S.users = { ...S.users, [f.owner]: doc }; derive();
+  if (S.mode === "live") await enqueue(() => S.db.doc("users/" + f.owner).set(doc));
+  await deleteAudio(f.owner, f.id);
+  toast("Pups entfernt.");
+}
+
+async function initSupabase(cfg) {
+  S.mode = "supa";
+  S.supa = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  const { data } = await S.supa.auth.getSession();
+  S.uid = (data.session && data.session.user.id) || null;
+  S.canWrite = !!S.uid;
+  S.supa.auth.onAuthStateChange((_ev, session) => {
+    const id = (session && session.user && session.user.id) || null;
+    if (id === S.uid) return;
+    S.uid = id; S.canWrite = !!id; S.meExists = !!S.users[id];
+    S.local = { swipes: {}, duels: {}, tvotes: {} }; S.deckReady = false;
+    if (id && S.tab === "login") S.tab = "discover";
+    derive(); render();
+  });
+  await supaLoad();
+  S.loaded = true; derive(); render();
+  S.supa.channel("pupsy-users")
+    .on("postgres_changes", { event: "*", schema: "public", table: "pupsy_users" }, () => {
+      clearTimeout(supaLoad.t);
+      supaLoad.t = setTimeout(async () => { await supaLoad(); derive(); softRender(); }, 400);
+    })
+    .subscribe();
+}
+async function supaLoad() {
+  const { data, error } = await S.supa.from("pupsy_users").select("id, doc").limit(2000);
+  if (error) { S.stale = true; return; }
+  const users = {};
+  for (const r of data) users[r.id] = r.doc || {};
+  if (S.pending > 0 && S.users[S.uid]) users[S.uid] = S.users[S.uid];  // eigene, noch laufende Änderung behalten
+  S.users = users; S.stale = false;
+  S.meExists = !!users[S.uid] || S.meExists;
+}
+
+async function initStore() {
+  const cfg = window.PUPSY_CONFIG || {};
+  if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase) {
+    try { return await initSupabase(cfg); }
+    catch (e) { toast("Supabase ist nicht erreichbar. Vorschau-Modus aktiv."); S.mode = "loading"; }
+  }
+  let db = null, user = null;
+  try {
+    if (window.claude && typeof window.claude.use === "function") [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+  } catch (e) { db = null; }
+  const uid = user ? await user.id().catch(() => null) : null;
+  if (!db || !uid) return startDemo();
+  S.mode = "live"; S.db = db; S.uid = uid;
+  const [can, owner] = await Promise.all([user.can("data.write").catch(() => null), user.isOwner().catch(() => false)]);
+  S.canWrite = can !== false; S.isOwner = !!owner;
+  let timer = setTimeout(() => { S.stale = true; if (!S.loaded) { S.loaded = true; derive(); } render(); }, 10000);
+  db.collection("users").limit(1000).onSnapshot(snap => {
+    const users = {};
+    for (const d of snap.docs) users[d.id] = d.data();
+    S.users = users;
+    S.meExists = !!users[S.uid] || S.meExists;
+    if (!snap.metadata.fromCache) { clearTimeout(timer); S.stale = false; }
+    const first = !S.loaded; S.loaded = true;
+    derive();
+    if (first) S.tab = "discover";
+    softRender();
+  }, err => {
+    clearTimeout(timer); S.loaded = true; S.stale = true; derive();
+    toast("Die Community ist gerade nicht erreichbar.");
+    render();
+  });
+}
+function startDemo() {
+  S.mode = "demo"; S.uid = "you"; S.canWrite = true; S.loaded = true; S.users = {};
+  derive(); render();
+}
+
+/* ============================== Wiedergabe ============================== */
+const P = { ctx: null, src: null, id: null, start: 0, dur: 0, raf: 0, cache: new Map() };
+function ensureCtx() {
+  if (!P.ctx) { const AC = window.AudioContext || window.webkitAudioContext; P.ctx = new AC(); }
+  if (P.ctx.state === "suspended") P.ctx.resume();
+  return P.ctx;
+}
+function stopAudio() {
+  if (P.src) { try { P.src.onended = null; P.src.stop(); } catch (e) {} }
+  P.src = null; P.id = null; cancelAnimationFrame(P.raf);
+  syncPlayUI();
+}
+async function bufferFor(key, loader) {
+  if (P.cache.has(key)) return P.cache.get(key);
+  const samples = await loader();
+  const buf = P.ctx.createBuffer(1, Math.max(1, samples.length), SR);
+  buf.copyToChannel(samples, 0);
+  if (P.cache.size > 40) P.cache.delete(P.cache.keys().next().value);
+  P.cache.set(key, buf);
+  return buf;
+}
+async function playKey(key, loader) {
+  ensureCtx();
+  if (P.id === key) { stopAudio(); return; }
+  stopAudio();
+  P.id = key; syncPlayUI(true);
+  let buf;
+  try { buf = await bufferFor(key, loader); }
+  catch (e) { if (P.id === key) { stopAudio(); toast("Dieser Pups lässt sich gerade nicht abspielen."); } return; }
+  if (P.id !== key) return;
+  const src = P.ctx.createBufferSource();
+  src.buffer = buf; src.connect(P.ctx.destination);
+  src.onended = () => { if (P.src === src) stopAudio(); };
+  P.src = src; P.start = P.ctx.currentTime; P.dur = buf.duration;
+  src.start();
+  syncPlayUI();
+  const tick = () => {
+    if (P.src !== src) return;
+    const p = clamp((P.ctx.currentTime - P.start) / P.dur) * 100;
+    for (const w of $$('[data-wave="' + key + '"]')) w.style.setProperty("--p", p + "%");
+    P.raf = requestAnimationFrame(tick);
+  };
+  tick();
+}
+const playFart = f => playKey(f.id, () => loadAudio(f));
+function syncPlayUI(loading) {
+  for (const b of $$("[data-play]")) {
+    const on = b.dataset.play === P.id;
+    b.classList.toggle("playing", on);
+    b.classList.toggle("loading", on && !!loading);
+    b.setAttribute("aria-label", on ? "Stopp" : "Abspielen");
+  }
+  for (const w of $$("[data-wave]")) if (w.dataset.wave !== P.id) w.style.setProperty("--p", "0%");
+}
+
+/* ============================== Bausteine ============================== */
+const ICON_PLAY = '<svg class="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg><svg class="stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>';
+const playBtn = (key, size = 52) => `<button class="play" data-play="${esc(key)}" style="--s:${size}px" aria-label="Abspielen">${ICON_PLAY}</button>`;
+function waveHTML(key, wave, color, h = 70) {
+  const bars = (Array.isArray(wave) ? wave : decWave(wave)).map(v => `<i style="height:${Math.max(6, v * 100).toFixed(0)}%"></i>`).join("");
+  return `<div class="wave" data-wave="${esc(key)}" style="--c:${color};--h:${h}px"><div class="bars">${bars}</div><div class="bars fill">${bars}</div></div>`;
+}
+const exPill = f => f.ex ? '<span class="pill ex">Beispiel</span>' : "";
+const statPills = f => `<div class="pills"><span class="pill">⏱️ ${fmtSec(f.dur)}</span><span class="pill">💥 ${f.peak}</span><span class="pill" style="background:${cat(f.cat).tint}">${cat(f.cat).emoji} ${cat(f.cat).label}</span>${f.gen ? '<span class="pill" title="Mit dem Zufalls-Generator erzeugt">🎲 generiert</span>' : ""}</div>`;
+function challengeBanner(compact) {
+  const c = challengeFor(today());
+  return `<div class="challenge card"><span class="em" aria-hidden="true">${c.emoji}</span><div><div class="eyebrow">Challenge des Tages</div><h3>${esc(c.title)}</h3>${compact ? "" : `<p>${esc(c.desc)}</p>`}</div></div>`;
+}
+const empty = (em, title, text, extra = "") => `<div class="card empty"><div class="em" aria-hidden="true">${em}</div><h3>${esc(title)}</h3><p class="muted" style="margin:0">${esc(text)}</p>${extra}</div>`;
+const moreBtn = f => (f.ex || f.owner === S.uid) && !S.isOwner ? "" : `<button class="icon-btn" data-menu="${esc(f.id)}" aria-label="Mehr Optionen">⋯</button>`;
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2800);
+}
+function openSheet(html) { const o = $("#overlay"); o.innerHTML = `<div class="sheet" role="dialog" aria-modal="true">${html}</div>`; o.hidden = false; }
+function closeSheet() { $("#overlay").hidden = true; $("#overlay").innerHTML = ""; $$(".confetti").forEach(c => c.remove()); }
+function confetti() {
+  const c = document.createElement("div"); c.className = "confetti";
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement("span");
+    s.textContent = pick(["💨", "🎉", "⭐️", "💥", "🫘", "✨", "🏆"]);
+    s.style.left = Math.random() * 100 + "%"; s.style.fontSize = (18 + Math.random() * 16) + "px";
+    s.style.animationDuration = (1.6 + Math.random() * 1.4) + "s"; s.style.animationDelay = (Math.random() * .6) + "s";
+    s.style.setProperty("--r", (Math.random() * 720 - 360) + "deg");
+    c.appendChild(s);
+  }
+  document.body.appendChild(c); setTimeout(() => c.remove(), 4000);
+}
+
+/* ============================== Ansichten ============================== */
+function render() {
+  const app = $("#app"), tabs = $("#tabs");
+  if (S.mode === "loading" || !S.loaded) {
+    tabs.hidden = true; app.classList.add("no-tabs");
+    app.innerHTML = `<div style="margin-top:12vh" class="stack center"><div class="logo" aria-hidden="true">💨</div><div class="wordmark">Pupsy</div><p class="muted" style="margin:0">Die Community wird geladen …</p><div class="spinner" aria-label="Lädt"></div></div>`;
+    return;
+  }
+  if (S.mode === "supa" && !S.uid && (S.tab === "login" || S.tab === "record")) { tabs.hidden = true; app.classList.add("no-tabs"); renderLogin(); return; }
+  const needsProfile = S.canWrite && (!me() || !me().name);
+  if (needsProfile || S.editingProfile) { tabs.hidden = true; app.classList.add("no-tabs"); renderOnboarding(); return; }
+  if (S.tab === "login") S.tab = "discover";
+  tabs.hidden = S.tab === "record"; app.classList.toggle("no-tabs", S.tab === "record");
+  for (const b of $$("#tabs .tab")) b.toggleAttribute("aria-current", false), b.dataset.tab === S.tab && b.setAttribute("aria-current", "page");
+  ({ discover: renderDiscover, duels: renderDuels, record: renderRecord, ranking: renderRanking, profile: renderProfile })[S.tab]();
+  syncPlayUI();
+}
+function softRender() {
+  if (S.dragging || S.swiping) return;
+  if (S.tab === "record" && S.rec.stage !== "pick") return;  // Formular nicht zerstören
+  if (S.editingProfile) return;
+  render();
+}
+
+function banners() {
+  let h = "";
+  if (S.mode === "demo") h += `<div class="notice card">👀 <b>Vorschau.</b> Hier läuft alles nur in deinem Browser. Deine Fürze sieht noch niemand sonst.</div>`;
+  else if (S.mode === "supa" && !S.uid) h += `<div class="notice card row"><span class="grow">🎧 Du hörst als Gast zu. Melde dich an, um abzustimmen und hochzuladen.</span><button class="btn sm" data-tab="login">Anmelden</button></div>`;
+  else if (!S.canWrite) h += `<div class="notice card">🎧 Du kannst zuhören und stöbern. Zum Mitmachen brauchst du mindestens Mitwirkenden-Rechte für diese Seite.</div>`;
+  if (S.stale) h += `<div class="notice card">📡 Die Community ist gerade nicht erreichbar. Was du siehst, ist vielleicht nicht aktuell.</div>`;
+  if ((S.mode === "live" || S.mode === "supa") && D.useEx && D.real.length < 5) h += `<div class="notice card">🌱 Die Community ist noch jung. Bis 5 echte Fürze da sind, mischen wir <b>Beispiel-Fürze</b> unter. Stimmen dafür zählen nur bei dir.</div>`;
+  return h;
+}
+
+/* ---------- Onboarding ---------- */
+let OB = null;
+function renderOnboarding() {
+  const app = $("#app"), cur = me() || {};
+  if (!OB) OB = { name: cur.name || "", emoji: cur.emoji || "💨", ok: !!cur.name };
+  const valid = /^[A-Za-z0-9_äöüÄÖÜß]{3,20}$/.test(OB.name);
+  const editing = S.editingProfile && !!cur.name;
+  app.innerHTML = `
+    ${editing ? "" : `<div class="row" style="margin-top:8px;gap:14px"><div class="logo" aria-hidden="true" style="width:72px;height:72px;font-size:40px;margin:0;box-shadow:4px 4px 0 var(--ink)">💨</div><div><div class="wordmark" style="font-size:40px;text-align:left">Pupsy</div><p class="muted" style="margin:0">Die Community für den guten Ton.</p></div></div>`}
+    ${editing ? "" : banners()}
+    <div class="stack">
+      <h1 style="font-size:30px">${editing ? "Profil bearbeiten" : "Wer bist du? 🤔"}</h1>
+      <div class="center"><span class="avatar lg" style="margin:0 auto">${esc(OB.emoji)}</span></div>
+      <div class="emoji-grid" role="group" aria-label="Avatar wählen">${AVATARS.map(e => `<button data-ob-emoji="${e}" aria-pressed="${e === OB.emoji}">${e}</button>`).join("")}</div>
+      <label class="label" for="ob-name">Dein Name</label>
+      <div class="row">
+        <input id="ob-name" class="field grow" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="z. B. Bohnenbaron" value="${esc(OB.name)}">
+        <button class="icon-btn" id="ob-dice" style="width:52px;height:52px;background:var(--sun);font-size:24px" aria-label="Zufallsname">🎲</button>
+      </div>
+      <small id="ob-hint">3–20 Zeichen: Buchstaben, Zahlen und _</small>
+      ${editing ? "" : `<button class="check card" id="ob-ok" role="checkbox" aria-checked="${OB.ok}"><span class="grow" style="flex:1">Ich halte mich an die Regeln: nur Fürze, keine Beleidigungen, keine persönlichen Daten. Verstöße werden gelöscht.</span><span class="box">${OB.ok ? "✓" : ""}</span></button>`}
+      <button class="btn pink block" id="ob-go" ${valid && (OB.ok || editing) ? "" : "disabled"}>${editing ? "Speichern" : "Los geht's! 🚀"}</button>
+      ${editing ? `<button class="btn white block" id="ob-cancel">Abbrechen</button>` : ""}
+    </div>`;
+}
+function refreshOnboardingButton() {
+  const valid = /^[A-Za-z0-9_äöüÄÖÜß]{3,20}$/.test(OB.name);
+  const btn = $("#ob-go"); if (btn) btn.disabled = !(valid && (OB.ok || S.editingProfile));
+  const hint = $("#ob-hint"); if (hint) hint.style.color = OB.name && !valid ? "#c2185b" : "";
+}
+async function submitOnboarding() {
+  const taken = Object.entries(S.users).some(([uid, u]) => uid !== S.uid && u && u.name && u.name.toLowerCase() === OB.name.toLowerCase())
+    || EX_USERS.some(u => u[0].toLowerCase() === OB.name.toLowerCase());
+  if (taken) { toast(`„${OB.name}“ ist schon vergeben 😅`); return; }
+  const first = !me() || !me().name;
+  await updateMe({ name: OB.name, emoji: OB.emoji, ...(first ? { joined: Date.now() } : {}) });
+  S.editingProfile = false; OB = null;
+  if (first) toast("Willkommen bei Pupsy! 💨");
+  render();
+}
+
+/* ---------- Entdecken ---------- */
+function buildDeck() {
+  const done = mySwipes();
+  const list = D.visible.filter(f => f.owner !== S.uid && !done[f.id]);
+  const now = Date.now();
+  S.deck = [...shuffle(list.filter(f => now - f.t < 2 * DAY)), ...shuffle(list.filter(f => now - f.t >= 2 * DAY))].map(f => f.id);
+  S.deckReady = true;
+}
+function renderDiscover() {
+  if (!S.deckReady || !S.deck.length) buildDeck();
+  S.deck = S.deck.filter(id => D.byId[id] && !D.byId[id].hidden && D.visible.includes(D.byId[id]));
+  $("#app").innerHTML = `
+    <div class="title-row"><div><h1>Entdecken</h1><div class="subtitle">Hör rein und swipe!</div></div>
+      <button class="icon-btn" id="autoplay" aria-pressed="${S.autoplay}" aria-label="Automatisch abspielen">${S.autoplay ? "🔊" : "🔇"}</button></div>
+    ${banners()}
+    ${challengeBanner(true)}
+    <div class="deck" id="deck"></div>
+    <div class="actions" id="actions"></div>`;
+  renderDeck();
+}
+function cardHTML(f, idx) {
+  const c = cat(f.cat);
+  return `<article class="card swipe-card" data-card="${esc(f.id)}" style="z-index:${10 - idx};transform:translateY(${idx * 12}px) scale(${1 - idx * .05});transform-origin:bottom center" ${idx ? 'aria-hidden="true"' : ""}>
+    <div class="row"><span class="avatar" style="--c:${c.color}">${esc(emojiOf(f.owner))}</span>
+      <div class="grow"><div class="ellipsis" style="font-weight:900">${esc(nameOf(f.owner))}</div><small>${ago(f.t)}</small></div>${exPill(f)}${moreBtn(f)}</div>
+    <h2>${esc(f.title || "Ohne Titel")}</h2>
+    <div class="player" style="--tint:${c.tint}">${playBtn(f.id, 60)}${waveHTML(f.id, f.wave, c.color, 86)}</div>
+    ${statPills(f)}
+    ${f.foods.length || f.note ? `<div class="stack" style="gap:6px"><div class="eyebrow">Davor gegessen</div>${f.foods.length ? `<div class="food-line">${f.foods.map(n => `<span class="pill" style="background:#ffe1c4">${foodEmoji(n)} ${esc(n)}</span>`).join("")}</div>` : ""}${f.note ? `<div class="note">„${esc(f.note)}“</div>` : ""}</div>` : ""}
+    <div class="foot"><span>❤️ ${f.likes}</span><span>⭐️ ${f.supers}</span><span>Elo ${Math.round(f.elo)}</span></div>
+    ${idx === 0 ? `<span class="stamp like">PUPS! 💨</span><span class="stamp nope">NÖ 🙅</span><span class="stamp super">SUPER ⭐️</span>` : ""}
+  </article>`;
+}
+function renderDeck() {
+  const deck = $("#deck"), actions = $("#actions"); if (!deck) return;
+  const cards = S.deck.slice(0, 3).map(id => D.byId[id]).filter(Boolean);
+  if (!cards.length) {
+    deck.style.height = "auto";
+    deck.innerHTML = empty("🎧", "Alles gehört!", D.all.length ? "Du hast jeden Pups bewertet. Nimm selbst einen auf oder schau später wieder rein." : "Noch keine Fürze da. Sei der Erste und nimm einen auf!",
+      `<button class="btn" data-tab="record" style="margin-top:6px">💨 Pups aufnehmen</button>`);
+    actions.innerHTML = "";
+    return;
+  }
+  deck.style.height = "";
+  deck.innerHTML = cards.map((f, i) => cardHTML(f, i)).reverse().join("");
+  const top = cards[0];
+  const canVote = top.ex || S.canWrite;
+  actions.innerHTML = canVote
+    ? `<button class="round" style="--c:var(--bubble)" data-swipe="nope" aria-label="Nö">✕</button>
+       <button class="round" style="--c:var(--sky);--s:52px" data-swipe="super" aria-label="Super-Pups">⭐️</button>
+       <button class="round" style="--c:var(--mint)" data-swipe="like" aria-label="Gefällt mir">💚</button>`
+    : `<button class="btn white" data-swipe="skip">Nächster ➜</button>`;
+  attachDrag($(`[data-card="${CSS.escape(top.id)}"]`), canVote);
+  syncPlayUI();
+}
+function setCardPos(card, dx, dy) {
+  card.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx / 18}deg)`;
+  const s = n => card.querySelector(".stamp." + n);
+  if (s("like")) { s("like").style.opacity = clamp(dx / 100); s("nope").style.opacity = clamp(-dx / 100); s("super").style.opacity = clamp(-dy / 130); }
+}
+function attachDrag(card, canVote) {
+  if (!card) return;
+  let sx = 0, sy = 0, dx = 0, dy = 0, active = false;
+  card.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    active = true; S.dragging = true; sx = e.clientX; sy = e.clientY; dx = dy = 0;
+    card.setPointerCapture(e.pointerId); card.style.transition = "none";
+  });
+  card.addEventListener("pointermove", e => { if (!active) return; dx = e.clientX - sx; dy = e.clientY - sy; setCardPos(card, dx, dy); });
+  const end = () => {
+    if (!active) return; active = false; S.dragging = false;
+    card.style.transition = "";
+    const kind = !canVote ? (Math.abs(dx) > 100 ? "skip" : null) : (dy < -120 && Math.abs(dx) < 110) ? "super" : dx > 100 ? "like" : dx < -100 ? "nope" : null;
+    if (kind) doSwipe(kind, card, dx, dy); else setCardPos(card, 0, 0), (card.style.transform = "");
+  };
+  card.addEventListener("pointerup", end); card.addEventListener("pointercancel", end);
+}
+function superCountToday() {
+  const t = today();
+  return Object.values(mySwipes()).filter(v => v && v.k === "s" && dayKey(v.t) === t).length;
+}
+async function doSwipe(kind, card, dx = 0, dy = 0) {
+  if (S.swiping) return;
+  const fid = S.deck[0], f = D.byId[fid]; if (!f) return;
+  card = card || $(`[data-card="${CSS.escape(fid)}"]`);
+  if (kind === "super" && !f.ex && superCountToday() >= 5) {
+    toast("Du hast heute schon 5 Super-Pupse vergeben ⭐️");
+    if (card) { card.style.transform = ""; setCardPos(card, 0, 0); card.style.transform = ""; }
+    return;
+  }
+  S.swiping = true; stopAudio();
+  if (card) {
+    card.style.transition = "transform .25s ease-in";
+    const tx = kind === "like" ? 700 : kind === "nope" ? -700 : kind === "skip" ? (dx >= 0 ? 700 : -700) : dx;
+    const ty = kind === "super" ? -1000 : dy;
+    card.style.transform = `translate(${tx}px, ${ty}px) rotate(${tx / 18}deg)`;
+  }
+  await sleep(260);
+  S.deck.shift(); S.swiping = false;
+  if (kind !== "skip") {
+    const v = { k: kind === "like" ? "l" : kind === "nope" ? "n" : "s", t: Date.now() };
+    if (f.ex) { S.local.swipes[fid] = v; derive(); }
+    else updateMe({ swipes: { [fid]: v } });
+  }
+  if (!S.deck.length) buildDeck();
+  renderDeck();
+  autoplayTop();
+}
+function autoplayTop() {
+  if (!S.autoplay || !P.ctx || P.ctx.state !== "running") return;
+  const f = D.byId[S.deck[0]]; if (f) playFart(f);
+}
+
+/* ---------- Duelle ---------- */
+function pickDuel() {
+  const done = myDuels();
+  const pool = shuffle(D.visible.filter(f => f.owner !== S.uid));
+  for (const a of pool) {
+    const cand = pool.filter(b => b.id !== a.id && !done[pairKey(a.id, b.id)]).sort((x, y) => Math.abs(x.elo - a.elo) - Math.abs(y.elo - a.elo));
+    if (cand.length) return [a.id, cand[0].id];
+  }
+  return null;
+}
+function renderDuels() {
+  $("#app").innerHTML = `
+    <div class="title-row"><div><h1>Duelle ⚔️</h1><div class="subtitle">Zwei Fürze, eine Entscheidung.</div></div></div>
+    ${banners()}
+    <div class="seg card" role="group" aria-label="Modus">
+      <button data-duelmode="quick" aria-pressed="${S.duelMode === "quick"}">⚔️ Schnell-Duell</button>
+      <button data-duelmode="tour" aria-pressed="${S.duelMode === "tour"}">🏆 Wochenturnier</button>
+    </div>
+    <div class="stack" id="duel-body">${S.duelMode === "quick" ? quickDuelHTML() : tournamentHTML()}</div>`;
+}
+function quickDuelHTML() {
+  if (S.duel && (!D.byId[S.duel[0]] || !D.byId[S.duel[1]])) S.duel = null;
+  if (!S.duel) S.duel = pickDuel();
+  if (!S.duel) return empty("🤷", "Keine Duelle mehr", D.visible.length < 2 ? "Für ein Duell braucht es mindestens zwei Fürze von anderen." : "Du hast schon alle Paarungen bewertet. Schau später wieder vorbei!");
+  const [a, b] = S.duel.map(id => D.byId[id]);
+  const out = f => S.duelWinner ? (S.duelWinner === f.id ? "won" : "lost") : "";
+  const canVote = (a.ex && b.ex) || S.canWrite;
+  const card = f => {
+    const c = cat(f.cat);
+    return `<div class="card duel-card ${out(f)}">
+      <div class="row"><span class="avatar" style="--c:${c.color}">${esc(emojiOf(f.owner))}</span>
+        <div class="grow"><div class="ellipsis" style="font-family:var(--display);font-size:19px;font-weight:600">${esc(f.title || "Ohne Titel")}</div><small>${esc(nameOf(f.owner))}</small></div>
+        ${exPill(f)}<span class="pill">Elo ${Math.round(f.elo)}</span></div>
+      <div class="player">${playBtn(f.id, 48)}${waveHTML(f.id, f.wave, c.color, 54)}</div>
+      ${statPills(f)}
+      ${canVote ? `<button class="btn ${out(f) === "won" ? "mint" : ""} sm block" data-duel-pick="${esc(f.id)}" ${S.duelWinner ? "disabled" : ""}>${out(f) === "won" ? "Gewinner! 👑" : "Der hier! 👑"}</button>` : ""}
+    </div>`;
+  };
+  return `${card(a)}<div class="vs" aria-hidden="true">VS</div>${card(b)}
+    <p class="center muted" style="margin:6px 0 0;font-size:13px">Hör dir beide an und wähl deinen Favoriten. Der Gewinner steigt im Elo-Ranking und bekommt +5 XP.</p>`;
+}
+async function voteDuel(wid) {
+  if (S.duelWinner || !S.duel) return;
+  const [a, b] = S.duel; const A = D.byId[a], B = D.byId[b];
+  S.duelWinner = wid; stopAudio(); renderDuels();
+  const v = { a, b, w: wid, t: Date.now() };
+  if (A.ex || B.ex) { S.local.duels[pairKey(a, b)] = v; derive(); }
+  else updateMe({ duels: { [pairKey(a, b)]: v } });
+  await sleep(1100);
+  S.duel = null; S.duelWinner = null;
+  if (S.tab === "duels") renderDuels();
+}
+
+const roundName = n => ({ 1: "Finale", 2: "Halbfinale", 4: "Viertelfinale", 8: "Achtelfinale" }[n] || "Runde");
+function tournamentHTML() {
+  const T = D.tour;
+  const last = D.lastTour && D.lastTour.champion ? D.byId[D.lastTour.champion] : null;
+  const lastHTML = last ? `<div class="card" style="padding:16px;background:var(--sun)"><div class="eyebrow">Champion der Vorwoche 🏆</div><div class="row" style="margin-top:8px">${playBtn(last.id, 44)}<div class="grow"><div style="font-family:var(--display);font-size:20px;font-weight:600" class="ellipsis">${esc(last.title)}</div><small>${esc(emojiOf(last.owner))} ${esc(nameOf(last.owner))}</small></div>${exPill(last)}</div></div>` : "";
+  if (!T) return empty("🏟️", "Noch kein Turnier", "Jeden Montag treten die besten Fürze der Vorwochen (nach Elo) im K.-o.-System an. Dafür braucht es mindestens zwei Fürze, die vor Montag hochgeladen wurden.") + lastHTML;
+  const tv = myTvotes();
+  let head;
+  if (T.finished) head = `<h2 style="font-size:26px">Turnier beendet 🎉</h2><p class="muted" style="margin:4px 0 0;font-size:13px">Am Montag startet das nächste.</p>`;
+  else head = `<h2 style="font-size:26px">${roundName(T.rounds[T.current].length)}</h2><p class="muted" style="margin:4px 0 0;font-size:13px">Stimm in jedem Match ab. Diese Runde endet ${esc(fmtWhen(T.ends[T.current]))} Uhr.</p>`;
+  let body = "";
+  if (T.finished) {
+    const ch = D.byId[T.champion];
+    if (ch) body = `<div class="card center stack" style="padding:20px;background:var(--sun);align-items:center"><div style="font-size:60px">🏆</div><div class="eyebrow">Champion der Woche</div><h2 style="font-size:26px">${esc(ch.title)}</h2><div class="row">${esc(emojiOf(ch.owner))} ${esc(nameOf(ch.owner))} ${exPill(ch)}</div><div class="player" style="width:100%">${playBtn(ch.id, 48)}${waveHTML(ch.id, ch.wave, cat(ch.cat).color, 56)}</div></div>`;
+  } else {
+    body = T.rounds[T.current].map(m => {
+      const voted = tv[m.key];
+      const total = m.va + m.vb;
+      const row = (id, isA) => {
+        const f = id && D.byId[id];
+        if (!f) return `<div class="row"><span class="muted" style="font-family:var(--display)">Freilos</span></div>`;
+        let right;
+        if (voted) { const v = isA ? m.va : m.vb; right = `<span style="font-family:var(--display);font-size:17px;font-variant-numeric:tabular-nums">${voted.a === isA ? "✅ " : ""}${total ? Math.round(v * 100 / total) : 0} %</span>`; }
+        else if (f.owner === S.uid) right = `<span class="pill" style="background:var(--sun)">Dein Pups</span>`;
+        else if (!S.canWrite) right = "";
+        else right = `<button class="btn sm" data-tvote="${esc(m.key)}" data-side="${isA ? "a" : "b"}">Wählen</button>`;
+        return `<div class="row">${playBtn(f.id, 42)}<div class="grow"><div class="ellipsis" style="font-weight:900">${esc(f.title)}</div><small class="ellipsis" style="display:block">${esc(emojiOf(f.owner))} ${esc(nameOf(f.owner))}</small></div>${exPill(f)}${right}</div>`;
+      };
+      return `<div class="card match"><div class="eyebrow center">Match ${m.slot}</div>${row(m.a, true)}<div class="divider">VS</div>${row(m.b, false)}</div>`;
+    }).join("");
+  }
+  const past = T.rounds.slice(0, T.finished ? T.R : T.current).flat();
+  const pastHTML = past.length ? `<div class="card stack" style="padding:14px;gap:8px"><div class="label">Bisherige Ergebnisse</div>${past.map(m => {
+    const t = id => id && D.byId[id] ? esc(D.byId[id].title) : "Freilos";
+    return `<div class="result-line"><span class="muted" style="width:26px">R${m.round + 1}</span><span class="${m.winner === m.a ? "w" : "l"} ellipsis">${t(m.a)}</span><span class="muted">vs</span><span class="${m.winner === m.b ? "w" : "l"} ellipsis">${t(m.b)}</span><span class="muted" style="margin-left:auto;font-variant-numeric:tabular-nums">${m.va}:${m.vb}</span></div>`;
+  }).join("")}</div>` : "";
+  return `<div class="card center" style="padding:16px;background:var(--lilac)"><div class="eyebrow">Woche ab ${esc(fmtDate(T.ws))}</div>${head}</div>${body}${pastHTML}${lastHTML}`;
+}
+function voteTournament(key, side) {
+  const T = D.tour; if (!T || T.finished) return;
+  const m = T.rounds[T.current].find(x => x.key === key); if (!m) return;
+  const fid = side === "a" ? m.a : m.b, other = side === "a" ? m.b : m.a;
+  const v = { a: side === "a", t: Date.now() };
+  if ((D.byId[fid] || {}).ex && (!other || (D.byId[other] || {}).ex)) { S.local.tvotes[key] = v; derive(); }
+  else updateMe({ tvotes: { [key]: v } });
+  renderDuels();
+}
+
+/* ---------- Ranking ---------- */
+const BOARDS = [["day", "Heute"], ["week", "Woche"], ["month", "Monat"], ["all", "Allzeit"], ["food", "Essen"]];
+function renderRanking() {
+  let body;
+  if (S.board === "food") body = foodHTML();
+  else {
+    const now = Date.now();
+    const from = { day: startOfDay(now), week: weekStart(now), month: monthStart(now), all: 0 }[S.board];
+    const list = D.visible.filter(f => f.t >= from).sort((a, b) => b.score - a.score || a.t - b.t).slice(0, 50);
+    if (!list.length) body = empty("🦗", "Noch still hier …", "In diesem Zeitraum gibt es noch keine Fürze. Sei der Erste!");
+    else {
+      const pod = (f, place, h, color) => f ? `<div class="pod"><div style="font-size:24px;height:30px">${place === 1 ? "👑" : ""}</div>
+        <span class="avatar" style="--c:${color};width:52px;height:52px;font-size:28px">${esc(emojiOf(f.owner))}</span>
+        <div class="who ellipsis" style="font-weight:900">${esc(nameOf(f.owner))}</div><div class="what ellipsis">${esc(f.title)}</div>
+        ${playBtn(f.id, 38)}<div class="block" style="background:${color};height:${h}px"><b>${place}</b><small>${f.score} Pkt</small></div></div>` : "<div></div>";
+      body = `<div class="podium">${pod(list[1], 2, 92, "var(--sky)")}${pod(list[0], 1, 128, "var(--sun)")}${pod(list[2], 3, 70, "var(--tang)")}</div>
+        ${list.slice(3).map((f, i) => `<div class="card lb-row"><span class="rank">${i + 4}</span><span class="avatar" style="--c:${cat(f.cat).color};width:40px;height:40px;font-size:21px">${esc(emojiOf(f.owner))}</span>
+          <div class="grow"><div class="ellipsis" style="font-weight:900">${esc(f.title)}</div><small class="ellipsis" style="display:block">${esc(nameOf(f.owner))} · ${cat(f.cat).emoji} · ${fmtSec(f.dur)}</small></div>
+          <div class="score">${f.score}<small>Pkt</small></div>${playBtn(f.id, 40)}</div>`).join("")}
+        <p class="center muted" style="font-size:12px;margin:4px 0 0">Punkte = Likes + 3 × Super-Pups − Nö${D.useEx ? " · Beispiel-Fürze sind mit dabei, bis die Community wächst" : ""}</p>`;
+    }
+  }
+  $("#app").innerHTML = `
+    <div class="title-row"><div><h1>Bestenliste 🏆</h1><div class="subtitle">Die größten Töne der Community</div></div></div>
+    <div class="seg card" role="group" aria-label="Zeitraum">${BOARDS.map(([k, l]) => `<button data-board="${k}" aria-pressed="${S.board === k}">${l}</button>`).join("")}</div>
+    <div class="stack">${body}</div>`;
+}
+function foodHTML() {
+  const groups = {};
+  for (const f of D.visible) for (const n of f.foods) (groups[n] = groups[n] || []).push(f);
+  const rows = Object.entries(groups).map(([food, l]) => ({ food, n: l.length, avg: l.reduce((s, f) => s + f.score, 0) / l.length, peak: l.reduce((s, f) => s + f.peak, 0) / l.length }))
+    .sort((a, b) => b.avg - a.avg);
+  if (!rows.length) return empty("🍽️", "Noch keine Daten", "Sobald Leute angeben, was sie gegessen haben, siehst du hier, was am meisten knallt.");
+  const mx = Math.max(1, ...rows.map(r => r.avg));
+  return `<div class="label">Welches Essen bringt die besten Fürze?</div>` + rows.map((r, i) => `
+    <div class="card lb-row" style="align-items:flex-start"><span style="font-size:30px">${foodEmoji(r.food)}</span>
+      <div class="grow stack" style="gap:6px"><div class="row"><b class="grow">${i + 1}. ${esc(r.food)}</b><span style="font-family:var(--display);font-variant-numeric:tabular-nums">Ø ${fmtNum(r.avg)} Pkt</span></div>
+      <div class="bar"><i style="width:${Math.max(4, clamp(r.avg / mx) * 100)}%"></i></div>
+      <small>${r.n} ${r.n === 1 ? "Furz" : "Fürze"} · Ø Wumms ${Math.round(r.peak)}</small></div></div>`).join("");
+}
+
+/* ---------- Profil ---------- */
+function renderProfile() {
+  const u = me() || { name: S.mode === "demo" ? "Du" : "Gast", emoji: "💨" };
+  const st = statsFor(S.uid), lvl = levelOf(st.xp), lo = xpFor(lvl), hi = xpFor(lvl + 1);
+  $("#app").innerHTML = `
+    <div class="card profile-head">
+      <span class="avatar lg">${esc(u.emoji || "💨")}</span>
+      <h2>${esc(u.name || "Gast")}</h2>
+      <div style="font-weight:900">Level ${lvl} · ${rankOf(lvl)}</div>
+      <div style="width:100%;max-width:280px" class="stack"><div class="bar xp" style="height:18px"><i style="width:${Math.max(5, (st.xp - lo) / (hi - lo) * 100)}%"></i></div><small class="center">${st.xp} / ${hi} XP</small></div>
+      ${S.canWrite && me() ? `<button class="btn white sm" id="edit-profile">✏️ Bearbeiten</button>` : ""}
+    </div>
+    <div class="stats">
+      <div class="stat card"><div class="em">🔥</div><b>${st.streak}</b><small>Streak</small></div>
+      <div class="stat card"><div class="em">💨</div><b>${st.mine.length}</b><small>Fürze</small></div>
+      <div class="stat card"><div class="em">❤️</div><b>${st.likes}</b><small>Likes</small></div>
+      <div class="stat card"><div class="em">💥</div><b>${st.maxPeak}</b><small>Max-Wumms</small></div>
+    </div>
+    ${banners()}
+    <div class="label" style="font-size:20px">Abzeichen (${st.badges.size}/${BADGES.length})</div>
+    <div class="badges">${BADGES.map(([code, name, em]) => `<button class="badge card ${st.badges.has(code) ? "on" : ""}" data-badge="${code}"><div class="em">${em}</div><small>${esc(name)}</small></button>`).join("")}</div>
+    <p class="muted center" style="font-size:12px;margin:0">XP: Upload +10 · Like +2 · Super-Pups +5 · Duell-Sieg +5 · Challenge +20 · Pups des Tages +50 · Turniersieg +100</p>
+    <div class="label" style="font-size:20px">Meine Fürze</div>
+    ${st.mine.length ? st.mine.map(f => `<div class="card lb-row">${playBtn(f.id, 42)}<div class="grow"><div class="ellipsis" style="font-weight:900">${esc(f.title)}</div>
+      <small>❤️ ${f.likes} · ⭐️ ${f.supers} · 🙅 ${f.nopes} · Elo ${Math.round(f.elo)}${f.hidden ? " · 🚫 versteckt (gemeldet)" : ""}</small></div>
+      ${S.canWrite ? `<button class="icon-btn" data-delete="${esc(f.id)}" aria-label="Löschen">🗑️</button>` : ""}</div>`).join("")
+      : empty("🎙️", "Noch nichts da", "Tipp unten auf den 💨-Knopf und lade deinen ersten Pups hoch!")}
+    ${S.mode === "supa" && !S.uid ? `<button class="btn pink block" data-tab="login" style="margin-top:8px">Anmelden</button>` : ""}
+    ${S.mode === "supa" && S.uid ? `<button class="btn white block" id="logout" style="margin-top:8px">Abmelden</button>` : ""}
+    ${S.canWrite && me() && (S.mode === "live" || S.mode === "supa") ? `<button class="btn blush block" id="delete-all" style="margin-top:8px">Alle meine Daten löschen</button>` : ""}`;
+}
+
+/* ---------- Anmelden (nur Supabase-Version) ---------- */
+function renderLogin() {
+  const L = S.login;
+  $("#app").innerHTML = `
+    <div class="title-row"><button class="icon-btn" data-tab="discover" aria-label="Zurück">✕</button><div class="center"><h1 style="font-size:24px">Anmelden</h1></div><span style="width:44px"></span></div>
+    <div class="stack center" style="margin-top:8px"><div class="logo" aria-hidden="true">💨</div><div class="wordmark">Pupsy</div><p class="muted" style="margin:0">Die Community für den guten Ton.</p></div>
+    <form class="card stack" id="login-form" style="padding:18px">
+      ${!L.sent ? `
+        <label class="label" for="login-email">Deine E-Mail</label>
+        <input id="login-email" class="field" type="email" autocomplete="email" required placeholder="du@beispiel.de" value="${esc(L.email)}">
+        <button class="btn pink block" type="submit" ${L.busy ? "disabled" : ""}>${L.busy ? "Moment …" : "Code schicken ✉️"}</button>
+        <small>Wir schicken dir einen Anmelde-Code. Kein Passwort nötig.</small>`
+      : `
+        <p style="margin:0">Wir haben dir einen Code an <b>${esc(L.email)}</b> geschickt. Du kannst auch einfach auf den Link in der Mail tippen.</p>
+        <label class="label" for="login-code">Code aus der E-Mail</label>
+        <input id="login-code" class="field" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456" maxlength="10">
+        <button class="btn mint block" type="submit" ${L.busy ? "disabled" : ""}>${L.busy ? "Moment …" : "Einloggen 💨"}</button>
+        <button class="btn white sm" type="button" id="login-back">Andere E-Mail</button>`}
+    </form>`;
+}
+async function submitLogin() {
+  const L = S.login; if (L.busy) return;
+  L.busy = true;
+  try {
+    if (!L.sent) {
+      L.email = ($("#login-email").value || "").trim();
+      renderLogin();
+      const { error } = await S.supa.auth.signInWithOtp({ email: L.email, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      L.sent = true;
+    } else {
+      const token = ($("#login-code").value || "").trim();
+      renderLogin();
+      const { error } = await S.supa.auth.verifyOtp({ email: L.email, token, type: "email" });
+      if (error) throw error;
+      S.login = { email: "", sent: false, busy: false };
+      S.tab = "discover";
+      return;
+    }
+  } catch (e) {
+    toast(e && e.status === 429 ? "Zu viele Versuche. Warte kurz und probier es nochmal." : L.sent ? "Der Code stimmt nicht oder ist abgelaufen." : "Die Mail konnte nicht verschickt werden. Prüf die Adresse.");
+  } finally {
+    L.busy = false;
+    if (S.tab === "login" || (!S.uid && S.tab === "record")) render();
+  }
+}
+async function deleteFart(fid) {
+  const u = me(); if (!u) return;
+  const farts = { ...(u.farts || {}) }; delete farts[fid];
+  stopAudio();
+  await setMe({ ...u, farts });
+  await deleteAudio(S.uid, fid);
+  toast("Pups gelöscht.");
+  render();
+}
+async function deleteAll() {
+  const u = me(); if (!u) return;
+  stopAudio();
+  for (const fid of Object.keys(u.farts || {})) await deleteAudio(S.uid, fid);
+  if (S.mode === "supa") await enqueue(async () => { const { error } = await S.supa.from("pupsy_users").delete().eq("id", S.uid); if (error) throw error; });
+  if (S.mode === "live") await enqueue(() => S.db.doc("users/" + S.uid).delete());
+  const users = { ...S.users }; delete users[S.uid]; S.users = users; S.meExists = false;
+  derive(); toast("Alles gelöscht. Tschüss! 👋"); render();
+}
+
+/* ---------- Aufnehmen ---------- */
+function renderRecord() {
+  const R = S.rec, app = $("#app");
+  const head = `<div class="title-row"><button class="icon-btn" id="rec-close" aria-label="Schließen">✕</button><div class="center"><h1 style="font-size:24px">Neuer Pups</h1></div><span style="width:44px"></span></div>`;
+  if (!S.canWrite) { app.innerHTML = head + empty("🔒", "Nur zum Zuhören", "Zum Hochladen brauchst du mindestens Mitwirkenden-Rechte für diese Seite."); return; }
+  if (R.stage === "pick") {
+    app.innerHTML = `${head}${challengeBanner(false)}
+      <div class="card stack center" style="padding:22px;align-items:center">
+        <button class="big-record" id="rec-file" aria-label="Aufnehmen oder Datei wählen">💨</button>
+        <h2 style="font-size:24px;margin-top:6px">Aufnehmen oder Datei wählen</h2>
+        <p class="muted" style="margin:0;max-width:34ch">Auf dem Handy: <b>Video aufnehmen</b> (Kamera ruhig abdecken 😏) oder eine Sprachmemo wählen. Wir nutzen nur den Ton, maximal 15 Sekunden.</p>
+      </div>
+      <button class="btn white block" id="rec-gen">🎲 Zufalls-Pups erzeugen</button>
+      <p class="muted center" style="font-size:12px;margin:0">Generierte Fürze werden als „🎲 generiert“ markiert.</p>`;
+    return;
+  }
+  if (R.stage === "busy") { app.innerHTML = head + `<div class="card empty"><div class="spinner"></div><h3>${esc(R.busyText || "Analysiere …")}</h3></div>`; return; }
+  const c = cat(R.cat), ch = challengeFor(today());
+  app.innerHTML = `${head}
+    <div class="card stack" style="padding:16px;gap:14px">
+      <h2 style="font-size:20px">Deine Analyse 🔬</h2>
+      <div class="player">${playBtn(R.key, 52)}${waveHTML(R.key, R.wave, c.color, 70)}</div>
+      <div class="stat-boxes">
+        <div class="stat card"><div class="em">⏱️</div><b>${fmtSec(R.dur)}</b><small>Dauer</small></div>
+        <div class="stat card"><div class="em">💥</div><b>${R.peak}</b><small>Wumms</small></div>
+        <div class="stat card"><div class="em">${c.emoji}</div><b class="ellipsis">${c.label}</b><small>Typ</small></div>
+      </div>
+      <div class="note">${esc(c.verdict)}</div>
+      <div><button class="btn white sm" id="rec-again">🔁 Nochmal</button></div>
+    </div>
+    <label class="label" for="rec-title">Titel</label>
+    <input id="rec-title" class="field" maxlength="60" placeholder="z. B. Der Weckruf" value="${esc(R.title)}">
+    <div class="label">Kategorie</div>
+    <div class="chip-scroll" role="group" aria-label="Kategorie">${Object.entries(CATS).map(([k, v]) => `<button class="chip" style="--c:${v.color};flex:none;padding:9px 14px" data-cat="${k}" aria-pressed="${R.cat === k}">${v.emoji} ${v.label}</button>`).join("")}</div>
+    <div class="label">Was hast du davor gegessen? 🍽️</div>
+    <div class="chips" role="group" aria-label="Essen">${FOODS.map(([n, e]) => `<button class="chip" data-food="${esc(n)}" aria-pressed="${R.foods.includes(n)}">${e} ${esc(n)}</button>`).join("")}</div>
+    <input id="rec-note" class="field" maxlength="120" placeholder="Sonst noch was? (z. B. 3 Teller Chili)" value="${esc(R.note)}">
+    <button class="check card" id="rec-ch" role="checkbox" aria-checked="${R.ch}"><span style="flex:1"><b style="font-family:var(--display);font-size:16px;font-weight:600">Bei „${esc(ch.title)}“ mitmachen ${ch.emoji}</b><br><small>${ch.food ? `Nur mit ${esc(ch.food)} im Bauch! ` : ""}+20 XP Bonus</small></span><span class="box">${R.ch ? "✓" : ""}</span></button>
+    <button class="btn mint block" id="rec-upload">Hochladen 🚀</button>`;
+}
+function startDraft(samples, extra = {}) {
+  const a = extra.analysis || analyze(samples);
+  S.rec = { stage: "review", key: "draft-" + rid(6), samples: a.samples, dur: a.dur, peak: a.peak, wave: a.wave, cat: a.cat, title: pick(TITLE_IDEAS), foods: [], note: "", ch: false, gen: !!extra.gen };
+  render();
+}
+async function handleFile(file) {
+  if (!file) return;
+  S.rec = { stage: "busy", busyText: "Analysiere deinen Pups …" }; render();
+  try {
+    if (file.size > 60 * 1024 * 1024) throw new Error("too_big");
+    const buf = await file.arrayBuffer();
+    const ctx = ensureCtx();
+    const audio = await new Promise((res, rej) => { const p = ctx.decodeAudioData(buf, res, rej); if (p && p.then) p.then(res, rej); });
+    const len = Math.max(1, Math.ceil(Math.min(audio.duration, 120) * SR));
+    const off = new OfflineAudioContext(1, len, SR);
+    const src = off.createBufferSource(); src.buffer = audio; src.connect(off.destination); src.start();
+    const rendered = await off.startRendering();
+    const samples = rendered.getChannelData(0);
+    const a = analyze(samples);
+    if (a.samples.length < SR * .1) throw new Error("short");
+    startDraft(null, { analysis: a });
+  } catch (e) {
+    S.rec = { stage: "pick" }; render();
+    toast(e.message === "too_big" ? "Die Datei ist zu groß. Nimm einen kürzeren Clip." : e.message === "short" ? "Da war nix 🤔 Versuch's nochmal." : "Diese Datei kann ich nicht lesen. Probier ein Video oder eine Sprachmemo (m4a, mp3, wav).");
+  }
+}
+function generateFart() {
+  const dur = 1 + Math.random() * 3.5, peak = Math.round(30 + Math.random() * 65), loud = .15 + .85 * peak / 100;
+  const samples = synth(Math.floor(Math.random() * 1e9), dur, loud);
+  startDraft(null, { gen: true, analysis: { samples, dur, peak, wave: waveFromSamples(samples, loud), cat: autoCat(dur, peak) } });
+}
+async function uploadDraft() {
+  const R = S.rec; if (R.stage !== "review") return;
+  R.title = ($("#rec-title").value || "").trim().slice(0, 60) || "Ohne Titel";
+  R.note = ($("#rec-note").value || "").trim().slice(0, 120);
+  const before = statsFor(S.uid);
+  S.rec = { ...R, stage: "busy", busyText: "Pups wird hochgeladen …" }; render();
+  const fid = rid(10);
+  const bytes = encodeMulaw(R.samples.length > MAX_SEC * SR ? R.samples.subarray(0, MAX_SEC * SR) : R.samples);
+  const okA = await putAudio(fid, bytes);
+  if (okA === false) { S.rec = R; render(); return; }
+  const meta = { title: R.title, cat: R.cat, dur: Math.round(R.dur * 100) / 100, peak: R.peak, wave: encWave(R.wave), foods: R.foods, note: R.note || null, t: Date.now(), ch: R.ch ? today() : null };
+  if (R.gen) meta.gen = true;
+  const okM = await updateMe({ farts: { [fid]: meta } });
+  if (okM === false) { S.rec = R; render(); return; }
+  if (S.mode === "demo") S.demoAudio.set(fid, { d: toB64(bytes), n: bytes.length });
+  const after = statsFor(S.uid);
+  const newBadges = [...after.badges].filter(b => !before.badges.has(b));
+  S.rec = { stage: "pick" }; S.tab = "discover"; stopAudio(); render();
+  celebrate("Hochgeladen! 💨", `+${after.xp - before.xp} XP. Jetzt kann die Community abstimmen.`, newBadges);
+}
+function celebrate(title, sub, badges) {
+  openSheet(`<div class="center" style="font-size:64px">${badges.length ? "🏅" : "🎉"}</div><h2>${esc(title)}</h2><p class="center muted" style="margin:0">${esc(sub)}</p>
+    ${badges.length ? `<div class="eyebrow center">Neue Abzeichen</div>` + badges.map(code => { const b = BADGES.find(x => x[0] === code); return `<div class="card row" style="padding:10px;background:var(--sun);box-shadow:3px 3px 0 var(--ink)"><span style="font-size:32px">${b[2]}</span><div><b>${esc(b[1])}</b><br><small>${esc(b[3])}</small></div></div>`; }).join("") : ""}
+    <button class="btn pink block" data-close>Yeah! 💨</button>`);
+  confetti();
+}
+
+/* ---------- Menü: Melden, Blockieren, Entfernen ---------- */
+function openMenu(fid) {
+  const f = D.byId[fid]; if (!f) return;
+  const own = f.owner === S.uid;
+  openSheet(`<h2>${esc(f.title)}</h2><div class="stack sheet-list">
+    ${!own && !f.ex && S.canWrite ? `<button data-menu-act="report">🚩 Melden</button><button data-menu-act="block">✋ ${esc(nameOf(f.owner))} blockieren</button>` : ""}
+    ${S.isOwner && !f.ex ? `<button data-menu-act="remove">🗑️ Entfernen (Admin)</button>` : ""}
+    <button data-close>Abbrechen</button></div>`);
+  $("#overlay").dataset.fid = fid;
+}
+function menuAction(act) {
+  const fid = $("#overlay").dataset.fid, f = D.byId[fid]; if (!f) return closeSheet();
+  if (act === "report") {
+    openSheet(`<h2>Warum meldest du diesen Pups?</h2><div class="stack sheet-list">${REPORT_REASONS.map(r => `<button data-report="${esc(r)}">${esc(r)}</button>`).join("")}<button data-close>Abbrechen</button></div>`);
+    $("#overlay").dataset.fid = fid;
+  } else if (act === "block") {
+    openSheet(`<h2>${esc(nameOf(f.owner))} blockieren?</h2><p class="center muted" style="margin:0">Du siehst dann keine Fürze mehr von dieser Person.</p><button class="btn pink block" data-block="${esc(f.owner)}">Blockieren</button><button class="btn white block" data-close>Abbrechen</button>`);
+  } else if (act === "remove") {
+    openSheet(`<h2>Pups entfernen?</h2><p class="center muted" style="margin:0">„${esc(f.title)}“ von ${esc(nameOf(f.owner))} wird für alle gelöscht.</p><button class="btn pink block" data-remove="${esc(fid)}">Entfernen</button><button class="btn white block" data-close>Abbrechen</button>`);
+  }
+}
+function afterRemoval() {
+  S.deck = S.deck.filter(id => D.visible.includes(D.byId[id]));
+  if (S.duel && S.duel.some(id => !D.visible.includes(D.byId[id]))) S.duel = null;
+  stopAudio(); render();
+}
+
+/* ============================== Ereignisse ============================== */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, [data-tab]"); if (!t) {
+    if (e.target.id === "overlay") closeSheet();
+    return;
+  }
+  const d = t.dataset;
+  if (P.ctx === null && (d.play || d.swipe || d.tab)) ensureCtx();
+  if (d.tab) {
+    if (d.tab === S.tab && d.tab !== "record") return;
+    stopAudio();
+    if (d.tab === "record" && S.tab !== "record") S.rec = { stage: "pick" };
+    S.tab = d.tab; window.scrollTo(0, 0); render();
+    if (S.tab === "discover") setTimeout(autoplayTop, 50);
+    return;
+  }
+  if (d.play) {
+    if (S.rec.key && d.play === S.rec.key) { playKey(S.rec.key, () => Promise.resolve(S.rec.samples)); return; }
+    const f = D.byId[d.play]; if (f) playFart(f); return;
+  }
+  if (d.swipe) return doSwipe(d.swipe);
+  if (d.menu) return openMenu(d.menu);
+  if (d.menuAct) return menuAction(d.menuAct);
+  if (d.close !== undefined) return closeSheet();
+  if (d.report) {
+    const fid = $("#overlay").dataset.fid; closeSheet();
+    updateMe({ reports: { [fid]: d.report } }); toast("Danke! Wir schauen uns das an. 🕵️"); afterRemoval(); return;
+  }
+  if (d.block) { closeSheet(); updateMe({ blocked: { [d.block]: true } }); toast(nameOf(d.block) + " blockiert."); afterRemoval(); return; }
+  if (d.remove) { closeSheet(); adminRemove(D.byId[d.remove]).then(afterRemoval); return; }
+  if (d.duelmode) { S.duelMode = d.duelmode; stopAudio(); renderDuels(); return; }
+  if (d.duelPick) return voteDuel(d.duelPick);
+  if (d.tvote) return voteTournament(d.tvote, d.side);
+  if (d.board) { S.board = d.board; stopAudio(); renderRanking(); return; }
+  if (d.badge) { const b = BADGES.find(x => x[0] === d.badge); openSheet(`<div class="center" style="font-size:56px">${b[2]}</div><h2>${esc(b[1])}</h2><p class="center" style="margin:0">${esc(b[3])}</p><button class="btn block" data-close>OK</button>`); return; }
+  if (d.delete) { const f = D.byId[d.delete]; openSheet(`<h2>Pups löschen?</h2><p class="center muted" style="margin:0">„${esc(f ? f.title : "")}“ verschwindet für immer.</p><button class="btn pink block" data-confirm-delete="${esc(d.delete)}">Löschen</button><button class="btn white block" data-close>Abbrechen</button>`); return; }
+  if (d.confirmDelete) { closeSheet(); deleteFart(d.confirmDelete); return; }
+  if (d.obEmoji) { OB.emoji = d.obEmoji; renderOnboarding(); return; }
+  if (d.cat) { S.rec.cat = d.cat; syncDraftInputs(); renderRecord(); return; }
+  if (d.food) { syncDraftInputs(); const f = S.rec.foods; S.rec.foods = f.includes(d.food) ? f.filter(x => x !== d.food) : [...f, d.food]; renderRecord(); return; }
+  switch (t.id) {
+    case "autoplay": S.autoplay = !S.autoplay; try { localStorage.setItem("pupsy-autoplay", S.autoplay ? "1" : "0"); } catch (err) {} if (!S.autoplay) stopAudio(); else autoplayTop(); renderDiscover(); return;
+    case "ob-dice": OB.name = pick(NAME_A) + pick(NAME_B) + (1 + Math.floor(Math.random() * 99)); renderOnboarding(); return;
+    case "ob-ok": OB.ok = !OB.ok; t.setAttribute("aria-checked", OB.ok); t.querySelector(".box").textContent = OB.ok ? "✓" : ""; refreshOnboardingButton(); return;
+    case "ob-go": submitOnboarding(); return;
+    case "ob-cancel": S.editingProfile = false; OB = null; render(); return;
+    case "edit-profile": S.editingProfile = true; OB = null; render(); return;
+    case "delete-all": openSheet(`<h2>Alles löschen?</h2><p class="center muted" style="margin:0">Dein Profil, alle deine Fürze und Stimmen werden endgültig gelöscht.</p><button class="btn pink block" id="confirm-delete-all">Endgültig löschen</button><button class="btn white block" data-close>Abbrechen</button>`); return;
+    case "confirm-delete-all": closeSheet(); deleteAll(); return;
+    case "rec-close": stopAudio(); S.rec = { stage: "pick" }; S.tab = "discover"; render(); return;
+    case "rec-file": $("#file-input").value = ""; $("#file-input").click(); return;
+    case "rec-gen": generateFart(); return;
+    case "rec-again": stopAudio(); S.rec = { stage: "pick" }; render(); return;
+    case "rec-ch": syncDraftInputs(); S.rec.ch = !S.rec.ch; t.setAttribute("aria-checked", S.rec.ch); t.querySelector(".box").textContent = S.rec.ch ? "✓" : ""; return;
+    case "rec-upload": uploadDraft(); return;
+    case "logout": stopAudio(); S.supa.auth.signOut(); toast("Abgemeldet. Bis bald! 👋"); return;
+    case "login-back": S.login = { email: S.login.email, sent: false, busy: false }; renderLogin(); return;
+  }
+});
+document.addEventListener("submit", e => {
+  if (e.target.id === "login-form") { e.preventDefault(); submitLogin(); }
+});
+function syncDraftInputs() {
+  const ti = $("#rec-title"), no = $("#rec-note");
+  if (ti) S.rec.title = ti.value; if (no) S.rec.note = no.value;
+}
+document.addEventListener("input", e => {
+  if (e.target.id === "ob-name") { OB.name = e.target.value.trim(); refreshOnboardingButton(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("#overlay").hidden) closeSheet();
+  if (S.tab === "discover" && $("#overlay").hidden && !e.target.closest("input")) {
+    if (e.key === "ArrowRight") doSwipe(S.canWrite || (D.byId[S.deck[0]] || {}).ex ? "like" : "skip");
+    if (e.key === "ArrowLeft") doSwipe(S.canWrite || (D.byId[S.deck[0]] || {}).ex ? "nope" : "skip");
+    if (e.key === "ArrowUp" && (S.canWrite || (D.byId[S.deck[0]] || {}).ex)) doSwipe("super");
+  }
+});
+$("#file-input").addEventListener("change", e => handleFile(e.target.files && e.target.files[0]));
+
+/* ============================== Start ============================== */
+render();
+initStore();
+</script>
+</body>
+</html>
