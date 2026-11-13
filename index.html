@@ -1325,7 +1325,7 @@ function renderLogin() {
       : `
         <p style="margin:0">Wir haben dir einen Code an <b>${esc(L.email)}</b> geschickt. Du kannst auch einfach auf den Link in der Mail tippen.</p>
         <label class="label" for="login-code">Code aus der E-Mail</label>
-        <input id="login-code" class="field" inputmode="numeric" autocomplete="one-time-code" required placeholder="123456" maxlength="10">
+        <input id="login-code" class="field" inputmode="numeric" autocomplete="one-time-code" required placeholder="Code" maxlength="10">
         <button class="btn mint block" type="submit" ${L.busy ? "disabled" : ""}>${L.busy ? "Moment …" : "Einloggen 💨"}</button>
         <button class="btn white sm" type="button" id="login-back">Andere E-Mail</button>`}
     </form>`;

@@ -19,7 +19,7 @@ Ohne Zugangsdaten läuft die Seite im Vorschau-Modus (alles nur lokal im Browser
 2. Im **SQL Editor** den Inhalt von [`supabase.sql`](supabase.sql) ausführen.
 3. **Authentication → URL Configuration:** als *Site URL* `https://laudisa01.github.io/pupsy/` eintragen.
 4. **Authentication → Email Templates → Magic Link:** `{{ .Token }}` in den Text aufnehmen, damit ein Code mitgeschickt wird (der Link funktioniert auch so).
-5. **Project Settings → API:** URL und `anon public` Key in [`config.js`](config.js) eintragen und pushen.
+5. **Project Settings → API:** URL und `anon public` Key in [`config.js`](config.js) eintragen und pushen. (Ist bereits erledigt: Pupsy nutzt die Tabellen `pupsy_users` und `pupsy_audio`.)
 
 ## Dateien
 
